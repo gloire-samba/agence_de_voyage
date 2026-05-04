@@ -1,0 +1,49 @@
+@if (!afficherFormulaire) {
+  <div class="crud-section">
+    <div class="section-header">
+      <h3>Catalogue des Voyages</h3>
+      <button class="btn-add" (click)="ouvrirCreation()">+ Nouveau Voyage</button>
+    </div>
+    
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Itinéraire Global</th>
+          <th>Prix</th>
+          <th>Nb Segments</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (v of voyages; track v.id) {
+          <tr>
+            <td><strong>#{{ v.id }}</strong></td>
+            <td>{{ v.villeDepart || v.ville_depart }} ➔ {{ v.villeArrivee || v.ville_arrivee }}</td>
+            <td>{{ (v.prixTotal || v.prix_total) | currency:'EUR' }}</td>
+            <td>{{ v.segments ? v.segments.length : 0 }} 🧩</td>
+            <td class="action-cells">
+              <!-- 👉 NOUVEAU : Deux boutons distincts qui mènent à la même page de gestion globale -->
+              <button class="btn-edit" (click)="ouvrirModification(v)">✏️ Modifier Infos</button>
+              <button class="btn-resas" style="border-color: #8b5cf6; color: #8b5cf6;" (click)="ouvrirModification(v)">🧩 Modifier Segments</button>
+              <button class="btn-delete" (click)="supprimer(v.id)">🗑️ Supprimer</button>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+} 
+@else {
+  <!-- LA PLEINE PAGE DU FORMULAIRE -->
+  <div class="crud-section" style="margin-bottom: 15px; padding: 15px; background: #f8fafc;">
+    <button class="btn-cancel" (click)="afficherFormulaire = false">⬅️ Retour au catalogue</button>
+  </div>
+
+  <app-admin-form-voyage 
+    [voyageEnEdition]="voyageSelectionne"
+    [segmentsDisponibles]="segmentsDisponibles"
+    (fermer)="afficherFormulaire = false"
+    (sauvegardeOk)="onSauvegardeReussie()">
+  </app-admin-form-voyage>
+}

@@ -1,0 +1,133 @@
+<div class="historique-container">
+  <h2>Mon Tableau de Bord</h2>
+  <p class="subtitle">Retrouvez ici toutes vos réservations passées et à venir.</p>
+
+  @if (isLoading) {
+    <div class="loading-state">
+      <div class="spinner">⏳</div>
+      <p>Chargement de vos voyages...</p>
+    </div>
+  } @else if (erreur) {
+    <div class="error-state">
+      ⚠️ {{ erreur }}
+    </div>
+  } @else if (reservations.length === 0) {
+    <div class="empty-state">
+      <h3>Aucune réservation</h3>
+      <p>Vous n'avez pas encore réservé de voyage avec nous. C'est le moment de partir !</p>
+    </div>
+  } @else {
+    <div class="table-responsive">
+      <table class="voyage-table">
+        <thead>
+          <tr>
+            <th>N° Commande</th>
+            <th>Trajet</th>
+            <th>Prix Payé</th>
+            <th>Date</th>
+            <th>Statut</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (res of reservations; track res.id) {
+            <tr>
+              <td><strong>#{{ res.id }}</strong></td>
+              
+              <td>
+                <div class="trajet-info">
+                  <span class="ville">{{ getVilleDepart(res) }}</span>
+                  <span class="fleche">➔</span>
+                  <span class="ville">{{ getVilleArrivee(res) }}</span>
+                </div>
+              </td>
+              
+              <td class="prix">{{ getPrixPaye(res) | currency:'EUR':'symbol':'1.0-2' }}</td>
+              
+              <td>
+                @if (getDateConfirmation(res)) {
+                  {{ getDateConfirmation(res) | date:'dd/MM/yyyy' }}
+                } @else {
+                  <span class="text-muted">Non définie</span>
+                }
+              </td>
+              
+              <td>
+                <span class="badge" 
+                      [class.confirme]="res.statut === 'CONFIRME'"
+                      [class.attente]="res.statut === 'EN_ATTENTE'"
+                      [class.annule]="res.statut === 'ANNULE'">
+                  {{ res.statut }}
+                </span>
+              </td>
+              
+              <td>
+                <!-- NOUVELLE GESTION DES ACTIONS -->
+                @if (res.statut === 'EN_ATTENTE' || res.statut === 'ANNULE') {
+                  
+                  <div class="actions-groupe">
+                    <!-- Le bouton Payer apparaît pour En Attente et Annulé -->
+                    <button class="btn-payer-historique" (click)="allerAuPaiement(res)">
+                      💳 Payer
+                    </button>
+
+                    <!-- Le bouton Annuler n'apparaît que si ce n'est pas DÉJÀ annulé -->
+                    @if (res.statut === 'EN_ATTENTE') {
+                      <button class="btn-annuler" (click)="annulerReservation(res.id)">
+                        Annuler
+                      </button>
+                    }
+                  </div>
+
+                } @else if (res.statut === 'CONFIRME') {
+                  
+                  <div class="actions-avis">
+                    @if (getMonAvis(res); as monAvis) {
+                      
+                      <!-- ⭐ MODE ÉDITION -->
+                      <span class="badge-note">⭐ {{ monAvis.note }}/5</span>
+
+                      <!-- 👉 NOUVEAU : Affichage de la date -->
+                      <span style="display: block; font-size: 12px; color: #64748b; margin-bottom: 5px;">
+                        Posté le {{ getDateAvis(monAvis) | date:'dd/MM/yyyy à HH:mm' }}
+                      </span>
+
+                      <button class="btn-action-avis edit-texte" (click)="ouvrirFormulaireAvis(res.id, monAvis)">
+                        ✏️ Modifier mon avis
+                      </button>
+
+                      <button class="btn-action-avis btn-supprimer" (click)="supprimerAvis(monAvis.id)" title="Supprimer mon avis">
+                        🗑️
+                      </button>
+
+                    } @else {
+                      
+                      <!-- 📝 MODE CRÉATION -->
+                      <button class="btn-action-avis add-texte" (click)="ouvrirFormulaireAvis(res.id)">
+                        ⭐ Laisser un avis
+                      </button>
+                      
+                    }
+                  </div>
+
+                } @else {
+                  <span class="no-action">-</span>
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</div>
+
+<!-- 🌟 LA MODALE DES AVIS (Cachée par défaut) -->
+@if (afficherModalAvis) {
+  <app-avis-form 
+    [reservationId]="reservationSelectionneeId"
+    [avisExistant]="avisSelectionne"
+    (fermer)="fermerFormulaire(false)"
+    (avisSoumis)="fermerFormulaire(true)">
+  </app-avis-form>
+}

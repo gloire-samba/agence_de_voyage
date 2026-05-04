@@ -1,0 +1,86 @@
+/* --- Conteneur principal (prend tout l'écran) --- */
+.login-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background-color: #f1f5f9; /* Un gris très clair/bleuté */
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* --- La carte blanche centrale --- */
+.login-card {
+  background-color: white;
+  padding: 40px;
+  border-radius: 12px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  text-align: center;
+  max-width: 400px;
+  width: 100%;
+}
+
+.login-card h2 {
+  margin-top: 0;
+  color: #1e293b;
+  font-size: 24px;
+  margin-bottom: 10px;
+}
+
+.login-card p {
+  color: #64748b;
+  margin-bottom: 30px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+/* --- Le groupe de boutons --- */
+.login-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+/* --- Styles de base pour les boutons --- */
+button {
+  width: 100%;
+  padding: 12px 20px;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+}
+
+/* --- Bouton Invité (Bleu classique) --- */
+.btn-invite {
+  background-color: #3b82f6;
+  color: white;
+}
+
+.btn-invite:hover {
+  background-color: #2563eb;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+/* --- Bouton Administrateur (Sombre / Sécurité) --- */
+.btn-admin {
+  background-color: #0f172a;
+  color: white;
+}
+
+.btn-admin:hover {
+  background-color: #1e293b;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.3);
+}
+
+/* Petit effet au clic pour les deux */
+button:active {
+  transform: translateY(0);
+}

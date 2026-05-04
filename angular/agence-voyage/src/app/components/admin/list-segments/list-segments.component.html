@@ -1,0 +1,43 @@
+<div class="crud-section">
+  <div class="section-header">
+    <h3>Catalogue des Segments</h3>
+    <button class="btn-add" (click)="ouvrirCreation()">+ Nouveau Segment</button>
+  </div>
+  
+  <table class="admin-table">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Trajet</th>
+        <th>Départ</th>
+        <th>Arrivée</th>
+        <th>Transport</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (s of segments; track s.id) {
+        <tr>
+          <td><strong>#{{ s.id }}</strong></td>
+          <td>{{ s.villeDepart || s.ville_depart }} ➔ {{ s.villeArrivee || s.ville_arrivee }}</td>
+          <td>{{ s.heureDepart || s.heure_depart | date:'short' }}</td>
+          <td>{{ s.heureArrivee || s.heure_arrivee | date:'short' }}</td>
+          <td>{{ s.moyenTransport || s.moyen_transport || 'Avion' }}</td>
+          <td class="action-cells">
+            <button class="btn-edit" (click)="ouvrirModification(s)">✏️ Modifier</button>
+            <button class="btn-delete" (click)="supprimer(s.id)">🗑️ Supprimer</button>
+          </td>
+        </tr>
+      }
+    </tbody>
+  </table>
+</div>
+
+<!-- 👉 INVOCATION DU COMPOSANT ENFANT -->
+@if (afficherFormulaire) {
+  <app-admin-form-segment 
+    [segmentEnEdition]="segmentSelectionne"
+    (fermer)="afficherFormulaire = false"
+    (sauvegardeOk)="onSauvegardeReussie()">
+  </app-admin-form-segment>
+}

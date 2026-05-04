@@ -1,0 +1,43 @@
+<div class="modal-overlay">
+  <div class="modal-content" style="max-width: 500px;">
+    <h3>{{ segmentEnEdition ? 'Modifier le Segment' : 'Nouveau Segment' }}</h3>
+    
+    <div style="display: flex; gap: 15px;">
+      <div class="form-group" style="flex: 1;">
+        <label>Ville de départ :</label>
+        <input type="text" [(ngModel)]="formSegment.villeDepart" placeholder="Ex: Paris">
+      </div>
+      <div class="form-group" style="flex: 1;">
+        <label>Ville d'arrivée :</label>
+        <input type="text" [(ngModel)]="formSegment.villeArrivee" placeholder="Ex: Tokyo">
+      </div>
+    </div>
+
+    <div style="display: flex; gap: 15px;">
+      <div class="form-group" style="flex: 1;">
+        <label>Départ :</label>
+        <input type="datetime-local" [(ngModel)]="formSegment.heureDepart">
+      </div>
+      <div class="form-group" style="flex: 1;">
+        <label>Arrivée :</label>
+        <input type="datetime-local" [(ngModel)]="formSegment.heureArrivee">
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Moyen de transport :</label>
+      <select [(ngModel)]="formSegment.moyenTransport" class="select-input">
+        <option value="Avion">✈️ Avion</option>
+        <option value="Train">🚄 Train</option>
+        <option value="Bus">🚌 Bus</option>
+        <option value="Bateau">🚢 Bateau</option>
+      </select>
+    </div>
+
+    <div class="modal-actions">
+      <!-- On émet l'événement 'fermer' quand on clique sur Annuler -->
+      <button class="btn-cancel" (click)="fermer.emit()">Annuler</button>
+      <button class="btn-save" (click)="sauvegarder()">Sauvegarder</button>
+    </div>
+  </div>
+</div>

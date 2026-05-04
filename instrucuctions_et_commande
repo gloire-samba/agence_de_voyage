@@ -1,0 +1,159 @@
+installé néo db sur le projet npx neonctl@latest init
+
+mot de passe supabase ,!RSUCx7eGH72yS
+
+Agent conversationnel de réservation (RAG) : Un assistant IA capable de comprendre une requête naturelle du type "Je cherche un voyage chaud avec une seule correspondance à moins de 500€". L'utilisation d'une architecture RAG couplée à un agent autonome  permettrait d'interroger directement tes bases de données (H2 ou SQLite) pour filtrer et proposer les bons trajets.
+
+Analyse multimodale des avis : Permettre aux utilisateurs de laisser des avis vocaux ou des photos. Le système pourrait utiliser la reconnaissance vocale (ASR) pour transcrire l'audio et des modèles de vision pour valider ou taguer automatiquement les images uploadées.
+
+Analyse de sentiments : Traiter automatiquement les commentaires textes laissés par les utilisateurs pour dégager une tendance générale (positif, négatif, points forts de la destination) sans avoir à lire tous les avis.
+
+{"texte": "Je cherche un vol..."}
+
+
+pour simuler un Paiement Réussi :
+
+Numéro de carte : 4242 4242 4242 4242 (Tape 4242 en boucle jusqu'au bout)
+
+Date d'expiration : N'importe quelle date dans le futur (ex : 12 / 30)
+
+Code de sécurité (CVC) : N'importe quels 3 chiffres (ex : 123)
+
+Code postal (si demandé) : N'importe quoi (ex : 75000)
+
+Nom sur la carte (si demandé) : Ce que tu veux.
+
+
+pour simuler un Paiement Echoué :
+
+Numéro de carte : 4000 0000 0000 0002
+
+Date d'expiration : N'importe quelle date dans le futur (ex : 12 / 30)
+
+Code de sécurité (CVC) : N'importe quels 3 chiffres (ex : 123)
+
+Code postal (si demandé) : N'importe quoi (ex : 75000)
+
+Nom sur la carte (si demandé) : Ce que tu veux.
+
+
+
+
+
+c'est bon ça marché on s'attaque a l'admin que je ne fait que repousser depuis plusieurs jours
+
+
+
+mais avant de me lancer je voudrais te demander comment toi tu l'aurais fait ? je pose cette question parce que tu es l'un des meillieur model et tu t'est entrainé sur des millions de sites (avec et sans autorisation mais dans beaucoup de cas sans autorisations, il ne faut pas déconné non plus) donc tu saaura mieux quoi faire
+
+
+
+voici mon idée (tu as le dire que je fait de la merde et de me proposé de meillieurs idées)
+
+
+
+pour moi admin dashboard il ne doit y avoir que 3 bouttons, 
+
+
+
+- le bouttons qui nous enmene sur le component recheche pour faire une réservations normal
+
+- le bouttons qui nous enmene sur le component sur list-voyage
+
+- le bouttons qui nous enmene sur le component la liste -utilisateurs
+
+
+
+- pour le bouttons qui nous enmene sur le component recheche pour faire une réservations normal c'est parfait il n'y a plus rien a faire et merci pour ton travail
+
+on passe du coup a l'affichage des list des voyages
+
+
+
+- pour liste des voyage on doit avoir tous les voyages qui apparaissent et pour chaque voyage  on doit avoir plusieurs bouttons qui sont modifier, supprimer, afficher les avis et un bouttons plus haut pour creer un nouveau voyage
+
+
+
+* modifier voyage : l'admin doit pouvoir 
+
+. modifier tous les attribut du voyage, 
+
+. pouvoir, ajouter, modifier et supprimer un ou plusieurs segment, échanger des segment,
+
+. pour les réservation je n'ai pas d'idée de ce qu'un admin peut faire mais surtout le plus important a le droit de faire par exemple un admin n'a pas le droit de modifier l'avis d'un utilisateurs
+
+. attention quand l'admin change le statut d'un voyage du statu de avenir ou en cours au statut annullé, et aussi quand on supprime un voyage qui avait le statut en avenir il faudrait qu'il y ai un mail autotmatique qui soit envoyé a tout les utilisateur qui était dans la réservations de ce voyage qui dit un truc du genre "votre voyage a été annullé, bous pouvez contacté le site http://localhost:4200/ ou l'admin (ici mettre le mails de l'admin) pour demander a être réafecté a un autre voyage ou demander un rembourssement"
+
+. l'admin ne peut pas supprimer directement un voyage qui a le statut en cours mais il doit d'abord le mettre en annullé puis le supprimé 
+
+
+
+* pour le bouttons liste des avis, 
+
+. ça doit nous redirigé sur la page list-avis qui affichera la list des avis mais uniquement pour le voyage dont on en a appuyer sur le bouttons (l'id + le mails de l'utilisateurs)
+
+. sur cette page on doit pouvoir voir qui a émis chaque avis 
+
+. truc important l'admin ne peut pas modifier et ajouter les avis, il ne peut que les voirs et les supprimer
+
+
+
+* pour le bouttons creer un nouveau voyage
+
+. on peut creer un nouveau voyage avec ou sans segments et les segments on peut en mettre autant que l'on veut
+
+. les vis et les réservations sont vide a la créations
+
+
+
+* il faudra aussi ajouté des bouttons trier pour trier par ordre croissant out décroissant : l'id le prix, le statut (ordre croissant c'est a venir, en cours, terminé, annulé), les notes moyennes, les dates de départ, les dates d'arrivées, les nom de villes de départ les nom de villes d'arrivées
+
+
+
+* filtrer par l'id, le prix, le statut, les notes moyennes, les dates de départ, les dates d'arrivées, les nom de villes de départ les nom de villes d'arrivées
+
+
+
+- pour le bouttons qui enmene sur list-utilisteurs tous les utilisateurs (sauf l'admin lui même), il faudrait qu'il y ai sur chaque utilisateur un bouttons modifier, supprimer, list des avis, list des réservations et pas de bouttons pour creer un nouvelle utilisateur comme je l'avais dit avant l'utilisateur créera un nouveau compte soit par mail + mot de passe soit par google ou github
+
+
+
+* pour le bouttons modifier 
+
+. l'admin doit pouvoir modifier les différents attribut sauf le mot de passe, l'utilisateur pourra changer de mot de passe tout seul et si il a un soucis il vas cliquer sur mot de passe oublier et un mail contenant sont mot de pase lui sera envoyé qui vas redirigé vers la page pour changer son mot de passe
+
+.on fera la gestion des mot de passe après la sécurité juste avant docker
+
+
+
+* pour le bouttons qui enmennent sur list-avis : 
+
+.l'admin doit pouvoir voir tous les avis donné par l'utilisateur dont il a appuyé sur le bouttons et on doit pouvoir voir aussi le voyage a qui s'était destiné (l'id  ainsi que le nom dans le cas du voyage c'est la ville de départ + la ville d'arrivé qui forme le nom)
+
+. la aussi l'admin ne peut pas modifier ni ajouté des avis, il ne peut que les voit et les supprimé
+
+
+
+* pour la réservation
+
+. l'admin doit pouvoir changé le statut et le voyage de la réservation mais quand il le fait la date de la réservation s'actualise et devient maintenant la date a laquel l'admin a éffectué les changement
+
+.pour le chnagement de voyage on ne construit pas un nouveau voyage de 0 mais on ne choisis que ceux existant
+
+.attention l'admin n'a pas besoin de payer pour changer le statu de la réservation
+
+
+
+* un bouttons pour trier les utilisateur par ordre croissant et décroissant : l'id, le mails, la date d'inscription,  le role (l'ordre croisant c'es user admin)
+
+
+
+* un boutton pour filtrer par  l'id, le mails, la date d'inscription,  le role
+
+
+
+j'aimerais ausssi mettre le systeme de rembourssement mais je voudrais savoir comment tu l'aurais fait
+
+
+
+voici mon idée (qui est surement de la merde)

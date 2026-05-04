@@ -1,0 +1,23 @@
+<div class="crud-section">
+  <h3>Modification de la Réservation #{{ reservationEnEdition?.id }}</h3>
+  <p style="color: #64748b; margin-bottom: 20px;">Vous modifiez le dossier administratif. Aucun paiement ne sera requis ici.</p>
+  
+  <div class="form-group">
+    <label>Statut :</label>
+    <select [(ngModel)]="formResa.statut" style="width: 100%; padding: 8px; border-radius: 5px; border: 1px solid #cbd5e1;">
+      <option value="EN_ATTENTE">⏳ En Attente</option>
+      <option value="CONFIRME">✅ Confirmé</option>
+      <option value="ANNULE">❌ Annulé</option>
+    </select>
+  </div>
+
+  <div class="form-group">
+    <label>Prix Facturé (€) :</label>
+    <input type="number" [(ngModel)]="formResa.prixPaye">
+  </div>
+
+  <div class="modal-actions">
+    <!-- Le bouton 'Annuler/Retour' est désormais géré par le parent, donc on ne garde que la sauvegarde ici -->
+    <button class="btn-save" (click)="sauvegarder()">💾 Mettre à jour le dossier</button>
+  </div>
+</div>

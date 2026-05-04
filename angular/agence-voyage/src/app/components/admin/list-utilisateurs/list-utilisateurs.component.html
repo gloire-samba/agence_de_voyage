@@ -1,0 +1,59 @@
+<!-- Si aucun utilisateur n'est sélectionné pour les réservations, on affiche la liste des utilisateurs -->
+@if (!utilisateurPourResa) {
+  <div class="crud-section">
+    <div class="section-header">
+      <h3>Comptes Utilisateurs</h3>
+      <button class="btn-add" (click)="ouvrirCreation()">+ Nouvel Utilisateur</button>
+    </div>
+    
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Nom</th>
+          <th>Email</th>
+          <th>Rôle</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (u of utilisateurs; track u.id) {
+          <tr>
+            <td><strong>#{{ u.id }}</strong></td>
+            <td>{{ u.nom || 'N/A' }}</td>
+            <td>{{ u.email || 'N/A' }}</td>
+            <td>
+              @if (u.role === 'ADMIN') { <span style="color: #ef4444; font-weight: bold;">🛡️ ADMIN</span> }
+              @else { <span style="color: #64748b;">👤 Invité</span> }
+            </td>
+            <td class="action-cells">
+              <button class="btn-resas" (click)="voirReservations(u)">📅 Voir Réservations</button>
+              <button class="btn-edit" (click)="ouvrirModification(u)">✏️ Modifier</button>
+              <button class="btn-delete" (click)="supprimer(u.id)">🗑️ Supprimer</button>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+
+  @if (afficherFormulaire) {
+    <app-admin-form-utilisateur 
+      [utilisateurEnEdition]="utilisateurSelectionne"
+      (fermer)="afficherFormulaire = false"
+      (sauvegardeOk)="onSauvegardeReussie()">
+    </app-admin-form-utilisateur>
+  }
+} 
+
+<!-- Si on a cliqué sur "Voir réservations", on affiche l'autre composant ! -->
+@else {
+  <div class="crud-section" style="margin-bottom: 15px; padding: 15px; background: #f8fafc;">
+    <button class="btn-cancel" (click)="retourListeUtilisateurs()">⬅️ Retour aux utilisateurs</button>
+    <span style="margin-left: 15px; font-weight: bold; color: #1e293b;">
+      Dossier de : {{ utilisateurPourResa.nom }} (ID: {{ utilisateurPourResa.id }})
+    </span>
+  </div>
+
+  <app-list-reservations [utilisateur]="utilisateurPourResa"></app-list-reservations>
+}

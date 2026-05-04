@@ -1,0 +1,183 @@
+<div class="catalogue-wrapper">
+  
+  @if (voyages.length === 0) {
+    <!-- État vide (Aucun résultat) -->
+    <div class="empty-state">
+      <div class="icon">🌍</div>
+      <h3>Prêt à décoller ?</h3>
+      <p>Faites une recherche textuelle ou vocale pour afficher les voyages disponibles.</p>
+    </div>
+  } @else {
+
+    <!-- 👉 NOUVEAU : LA BARRE DE TRI -->
+    <div class="catalogue-header">
+      <div class="resultats-compte">
+        {{ voyages.length }} voyage(s) trouvé(s)
+      </div>
+      <div class="tri-container">
+        <label for="tri">Trier par :</label>
+        <select id="tri" [(ngModel)]="critereTri" (change)="trierVoyages()">
+          <option value="">-- Par défaut --</option>
+          <option value="prix_asc">💰 Prix : Croissant</option>
+          <option value="prix_desc">💰 Prix : Décroissant</option>
+          <option value="date_asc">📅 Date : Du plus proche au plus lointain</option>
+          <option value="date_desc">📅 Date : Du plus lointain au plus proche</option>
+          <option value="escales_asc">✈️ Trajet : Du plus direct au plus long</option>
+          <option value="escales_desc">✈️ Trajet : Du plus long au plus direct</option>
+          <option value="note_desc">⭐ Note : Les mieux notés en premier</option>
+          <option value="note_asc">⭐ Note : Les moins bien notés en premier</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- La Grille des Voyages -->
+    <div class="voyages-grid">
+      @for (voyage of voyages; track voyage.id) {
+        <div class="voyage-card">
+          
+          <!-- En-tête de la carte -->
+          <div class="card-header">
+            <div class="trajet">
+              <span class="ville">{{ getVilleDepart(voyage) }}</span>
+              <span class="fleche">➔</span>
+              <span class="ville">{{ getVilleArrivee(voyage) }}</span>
+            </div>
+            <div class="prix">
+              {{ getPrix(voyage) | currency:'EUR':'symbol':'1.0-0' }}
+            </div>
+          </div>
+
+          <!-- Corps de la carte (Détails) -->
+          <div class="card-body">
+            <div class="info-ligne">
+              <span class="label">📅 Départ :</span>
+              <span class="valeur">{{ getDateDepart(voyage) | date:'dd MMM yyyy à HH:mm' }}</span>
+            </div>
+            
+            <div class="info-ligne">
+              <span class="label">✈️ Trajet :</span>
+              <!-- 👉 NOUVEAU : Transformé en bouton -->
+              <button class="valeur badge btn-badge" 
+                      [class.direct]="getNbEscales(voyage) === 0"
+                      (click)="ouvrirModal('SEGMENTS', voyage)"
+                      title="Voir les détails du trajet">
+                @if (getNbEscales(voyage) === 0) {
+                  Vol direct 👁️
+                } @else if (getNbEscales(voyage) === 1) {
+                  1 escale 👁️
+                } @else {
+                  {{ getNbEscales(voyage) }} escales 👁️
+                }
+              </button>
+            </div>
+
+            <div class="info-ligne">
+              <span class="label">⭐ Avis :</span>
+              <!-- 👉 NOUVEAU : Transformé en bouton -->
+              <button class="valeur btn-badge-outline" 
+                      (click)="ouvrirModal('AVIS', voyage)"
+                      title="Lire les avis">
+                {{ getNoteMoyenne(voyage) }}/5 ({{ getNombreAvis(voyage) }} avis) 👁️
+              </button>
+            </div>
+
+            <div class="info-ligne">
+              <span class="label">📌 Statut :</span>
+              <span class="valeur badge" 
+                    [class.confirme]="getStatut(voyage) === 'A_VENIR'"
+                    [class.annule]="getStatut(voyage) === 'ANNULE' || getStatut(voyage) === 'TERMINE'">
+                {{ getStatut(voyage) }}
+              </span>
+            </div>
+          </div>
+
+          <!-- Pied de la carte -->
+          <div class="card-footer">
+            @if (getStatut(voyage) === 'ANNULE') {
+              <div class="btn-indisponible">
+                🚫 Voyage annulé - Réservation impossible
+              </div>
+            } @else {
+              <button class="btn-reserver" (click)="onReserver(voyage)">
+                Réserver ce vol
+              </button>
+            }
+          </div>
+
+        </div>
+      }
+    </div>
+  }
+
+</div>
+
+<!-- ========================================== -->
+<!-- ZONES DES MODALES DE CONSULTATION          -->
+<!-- ========================================== -->
+
+@if (modalActive) {
+  <div class="modal-overlay" (click)="fermerModal()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+      
+      <div class="modal-header">
+        <h3>
+          {{ modalActive === 'SEGMENTS' ? 'Détails du trajet' : 'Avis des voyageurs' }}
+        </h3>
+        <button class="btn-close" (click)="fermerModal()">✖</button>
+      </div>
+
+      <div class="modal-body">
+        
+        <!-- AFFICHAGE DES ESCALES -->
+        @if (modalActive === 'SEGMENTS') {
+          @if (getNbEscales(voyageSelectionne!) === 0) {
+            <div class="alert-info">Ce voyage est un trajet direct, sans aucune escale.</div>
+          }
+          
+          <div class="timeline">
+            @for (segment of voyageSelectionne!.segments; track segment.id) {
+              <div class="timeline-item">
+                <div class="segment-villes">
+                  <strong>{{ segment.villeDepart || segment.ville_depart }}</strong> 
+                  ➔ 
+                  <strong>{{ segment.villeArrivee || segment.ville_arrivee }}</strong>
+                </div>
+                <div class="segment-dates">
+                  Départ : {{ (segment.heureDepart || segment.heure_depart) | date:'dd/MM/yyyy HH:mm' }} <br>
+                  Arrivée : {{ (segment.heureArrivee || segment.heure_arrivee) | date:'dd/MM/yyyy HH:mm' }}
+                </div>
+              </div>
+            }
+          </div>
+        }
+
+        <!-- AFFICHAGE DES AVIS -->
+        @if (modalActive === 'AVIS') {
+          @if (getNombreAvis(voyageSelectionne!) === 0) {
+            <div class="alert-info">Aucun avis n'a encore été laissé pour ce voyage.</div>
+          }
+          
+          <div class="avis-list">
+            @for (avis of voyageSelectionne!.avis; track avis.id) {
+              <div class="avis-card">
+                <div class="avis-header">
+                  <span class="avis-auteur">{{ avis.utilisateur?.email || 'Utilisateur anonyme' }}</span>
+                  <span class="avis-date">{{ (avis.dateCreation || avis.date_creation) | date:'dd/MM/yyyy' }}</span>
+                </div>
+                <div class="avis-note">
+                  @for (star of [1,2,3,4,5]; track star) {
+                    <span [style.color]="star <= avis.note ? '#f59e0b' : '#e2e8f0'">★</span>
+                  }
+                </div>
+                <div class="avis-commentaire">
+                  {{ avis.commentaire || 'Aucun commentaire texte.' }}
+                </div>
+              </div>
+            }
+          </div>
+        }
+
+      </div>
+    </div>
+  </div>
+}

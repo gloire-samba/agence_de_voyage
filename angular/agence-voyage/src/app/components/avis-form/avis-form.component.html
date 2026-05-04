@@ -1,0 +1,77 @@
+<div class="modal-overlay" (click)="fermer.emit()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    
+    <div class="modal-header">
+      <h3>{{ avisExistant ? 'Modifier mon avis' : 'Donner mon avis' }}</h3>
+      <button class="btn-close" (click)="fermer.emit()">✖</button>
+    </div>
+
+    <div class="modal-body">
+      
+      <!-- La sélection de la note -->
+      <div class="rating-section">
+        <p class="label">Notez votre voyage :</p>
+        <div class="stars">
+          @for (star of [1, 2, 3, 4, 5]; track star) {
+            <span class="star" 
+                  [class.active]="star <= note" 
+                  (click)="setNote(star)">
+              ★
+            </span>
+          }
+        </div>
+      </div>
+
+      <!-- La zone de texte libre -->
+      <div class="form-group">
+        <p class="label">Votre commentaire (optionnel si vocal) :</p>
+        <textarea 
+          [(ngModel)]="commentaire" 
+          rows="4" 
+          placeholder="Racontez votre expérience..."
+          [disabled]="isRecording || isLoadingAudio || isLoadingText">
+        </textarea>
+      </div>
+
+      @if (erreur) {
+        <div class="error-msg">⚠️ {{ erreur }}</div>
+      }
+
+    </div>
+
+    <!-- Les fameux DEUX boutons distincts -->
+    <div class="modal-footer">
+      <p class="helper-text">Choisissez comment valider cet avis :</p>
+      
+      <div class="action-buttons">
+        
+        <!-- BOUTON ÉCRIT -->
+        <button class="btn-submit btn-texte" 
+                (click)="soumettreTexte()" 
+                [disabled]="isLoadingText || isRecording || isLoadingAudio || !commentaire">
+          @if (isLoadingText) {
+            <span class="spinner">⏳</span> Envoi...
+          } @else {
+            📝 {{ avisExistant ? 'Modifier' : 'Ajouter' }} par écrit
+          }
+        </button>
+
+        <!-- BOUTON VOCAL -->
+        <button class="btn-submit btn-vocal" 
+                (click)="toggleEnregistrement()"
+                [disabled]="isLoadingText || isLoadingAudio"
+                [class.recording]="isRecording">
+          @if (isLoadingAudio) {
+            <span class="spinner">⏳</span> Analyse IA...
+          } @else if (isRecording) {
+            🛑 Stopper l'enregistrement
+          } @else {
+            🎤 {{ avisExistant ? 'Modifier' : 'Ajouter' }} à l'oral
+          }
+        </button>
+        
+      </div>
+    </div>
+
+  </div>
+</div>

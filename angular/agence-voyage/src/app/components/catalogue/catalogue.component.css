@@ -1,0 +1,320 @@
+.catalogue-wrapper {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+/* Design quand il n'y a pas de résultats */
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  background-color: #f8f9fa;
+  border-radius: 16px;
+  color: #6c757d;
+  margin-top: 20px;
+}
+.empty-state .icon {
+  font-size: 60px;
+  margin-bottom: 15px;
+}
+
+/* La grille (Responsive) */
+.voyages-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 25px;
+  margin-top: 20px;
+}
+
+/* Design de la Carte */
+.voyage-card {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid #f0f0f0;
+}
+
+.voyage-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+}
+
+.card-header {
+  background: linear-gradient(135deg, #007bff, #0056b3);
+  color: white;
+  padding: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.trajet {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: bold;
+  font-size: 1.2rem;
+}
+
+.prix {
+  font-size: 1.4rem;
+  font-weight: 900;
+  background: rgba(255,255,255,0.2);
+  padding: 5px 12px;
+  border-radius: 8px;
+}
+
+.card-body {
+  padding: 20px;
+  flex-grow: 1;
+}
+
+.info-ligne {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 15px;
+  border-bottom: 1px dashed #eee;
+  padding-bottom: 10px;
+}
+
+.info-ligne:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+}
+
+.label {
+  color: #666;
+}
+
+.valeur {
+  font-weight: 600;
+  color: #333;
+}
+
+/* Badges pour les escales */
+.badge {
+  padding: 4px 10px;
+  border-radius: 20px;
+  background-color: #ff9800;
+  color: white;
+  font-size: 0.9rem;
+}
+
+.badge.direct {
+  background-color: #28a745; /* Vert pour direct */
+}
+
+.card-footer {
+  padding: 15px 20px;
+  background: #fcfcfc;
+  border-top: 1px solid #f0f0f0;
+}
+
+.btn-reserver {
+  width: 100%;
+  padding: 12px;
+  background-color: #28a745;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1.1rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.btn-reserver:hover {
+  background-color: #218838;
+}
+
+/* Couleurs dynamiques pour les statuts des voyages */
+.badge.confirme {
+  background-color: #d4edda;
+  color: #155724;
+}
+
+.badge.annule {
+  background-color: #f8d7da;
+  color: #721c24;
+}
+
+/* Style pour le texte de remplacement quand le voyage est annulé */
+.btn-indisponible {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 12px;
+  background-color: #fee2e2; /* Un rouge très clair, solide et lisse */
+  color: #ef4444; /* Un rouge plus vif pour le texte */
+  border: none; /* On supprime l'effet pointillé ! */
+  border-radius: 8px;
+  font-size: 1.1rem; /* On aligne exactement sur la taille du bouton vert */
+  font-weight: bold;
+  text-align: center;
+  cursor: not-allowed;
+  box-sizing: border-box; /* Empêche le padding de déborder */
+}
+
+
+/* ==========================================
+   ZONE DE TRI
+   ========================================== */
+.catalogue-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: white;
+  padding: 15px 20px;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+  margin-top: 20px;
+  border: 1px solid #e2e8f0;
+}
+
+.resultats-compte {
+  font-weight: bold;
+  color: #475569;
+}
+
+.tri-container {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.tri-container label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.tri-container select {
+  padding: 8px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background-color: #f8fafc;
+  color: #334155;
+  font-weight: bold;
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.tri-container select:focus {
+  border-color: #3b82f6;
+}
+
+/* ==========================================
+   BOUTONS INTERACTIFS DANS LES CARTES
+   ========================================== */
+.btn-badge {
+  border: none;
+  cursor: pointer;
+  transition: transform 0.1s, filter 0.2s;
+}
+.btn-badge:hover {
+  transform: scale(1.05);
+  filter: brightness(1.1);
+}
+
+.btn-badge-outline {
+  background: white;
+  border: 1px solid #cbd5e1;
+  border-radius: 20px;
+  padding: 4px 10px;
+  font-size: 0.9rem;
+  font-weight: bold;
+  color: #334155;
+  cursor: pointer;
+  transition: background-color 0.2s, color 0.2s;
+}
+.btn-badge-outline:hover {
+  background: #f1f5f9;
+  color: #007bff;
+  border-color: #007bff;
+}
+
+/* ==========================================
+   MODALES DE CONSULTATION
+   ========================================== */
+.modal-overlay {
+  position: fixed;
+  top: 0; left: 0; width: 100vw; height: 100vh;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex; justify-content: center; align-items: center;
+  z-index: 1000;
+  -webkit-backdrop-filter: blur(3px); /* 👈 NOUVEAU : Compatibilité Safari/iOS */
+  backdrop-filter: blur(3px);
+}
+
+.modal-content {
+  background: white;
+  width: 90%;
+  max-width: 500px;
+  max-height: 80vh; /* Empêche la modale d'être plus grande que l'écran */
+  border-radius: 12px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.modal-header {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 15px 20px;
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.modal-header h3 { margin: 0; color: #1e293b; font-size: 1.2rem; }
+
+.btn-close {
+  background: none; border: none; font-size: 20px; cursor: pointer; color: #94a3b8;
+}
+.btn-close:hover { color: #ef4444; }
+
+.modal-body {
+  padding: 20px;
+  overflow-y: auto; /* Permet de scroller à l'intérieur si beaucoup de contenu */
+}
+
+.alert-info {
+  background: #e0f2fe; color: #0284c7; padding: 12px; border-radius: 8px; text-align: center;
+}
+
+/* Design du contenu (Segments) */
+.timeline {
+  display: flex; flex-direction: column; gap: 15px;
+}
+.timeline-item {
+  background: #f8fafc; padding: 15px; border-radius: 8px; border-left: 4px solid #3b82f6;
+}
+.segment-villes { font-size: 1.1rem; color: #1e293b; margin-bottom: 5px; }
+.segment-dates { font-size: 0.9rem; color: #64748b; margin-bottom: 5px; line-height: 1.4; }
+.segment-transport { font-size: 0.85rem; font-weight: bold; color: #007bff; }
+
+/* Design du contenu (Avis) */
+.avis-list {
+  display: flex; flex-direction: column; gap: 15px;
+}
+.avis-card {
+  background: white; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0;
+}
+.avis-header {
+  display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 5px;
+}
+.avis-auteur { font-weight: bold; color: #334155; }
+.avis-date { color: #94a3b8; }
+.avis-note { font-size: 1.2rem; margin-bottom: 8px; }
+.avis-commentaire { color: #475569; font-style: italic; font-size: 0.95rem; }

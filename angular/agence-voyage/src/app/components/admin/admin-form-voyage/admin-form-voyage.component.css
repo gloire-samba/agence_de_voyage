@@ -1,0 +1,12 @@
+.modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+.modal-content { background: white; padding: 25px; border-radius: 10px; width: 100%; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+.form-group { margin-bottom: 15px; }
+.form-group label { display: block; margin-bottom: 5px; font-weight: bold; color: #334155; font-size: 14px;}
+.form-group input { width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 5px; box-sizing: border-box; }
+.modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+.btn-cancel { padding: 8px 15px; background: #e2e8f0; border: none; border-radius: 5px; cursor: pointer; }
+.btn-save { padding: 8px 15px; background: #10b981; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
+
+/* Styles spécifiques à la liste de segments */
+.segment-checkbox { display: flex; align-items: center; gap: 10px; padding: 5px 0; border-bottom: 1px solid #e2e8f0; cursor: pointer; font-weight: normal; color: #334155; }
+.segment-transport { color: #64748b; font-size: 12px; margin-left: 5px; }

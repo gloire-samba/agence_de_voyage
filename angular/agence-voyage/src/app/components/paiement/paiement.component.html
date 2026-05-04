@@ -1,0 +1,43 @@
+<div class="paiement-container">
+  
+  <div class="header">
+    <h2>Paiement Sécurisé</h2>
+    <p>Validation de la réservation N°{{ reservationId }}</p>
+  </div>
+
+  <div class="montant-box">
+    <span>Montant à régler :</span>
+    <strong>{{ prixTotal }} €</strong>
+  </div>
+
+  @if (ticketRecu) {
+    <div class="stripe-zone">
+      
+      <!-- 👉 C'EST ICI QUE STRIPE VA INJECTER LE FORMULAIRE -->
+      <div id="payment-element-div"></div>
+
+      <button class="btn-payer" (click)="payer()" [disabled]="isLoading">
+        @if (isLoading) {
+          <span class="spinner">⏳</span> Traitement...
+        } @else {
+          🔒 Payer {{ prixTotal }} €
+        }
+      </button>
+
+      @if (message) {
+        <div class="message-alerte" 
+             [class.success]="message.includes('✅')" 
+             [class.error]="message.includes('❌') || message.includes('Erreur') || message.includes('Échec')">
+          {{ message }}
+        </div>
+      }
+    </div>
+  } @else if (!message) {
+    <div class="loading-zone">
+      <span class="spinner">⏳</span> Connexion à la banque...
+    </div>
+  } @else {
+    <div class="message-alerte error">{{ message }}</div>
+  }
+
+</div>

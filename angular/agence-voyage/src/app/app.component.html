@@ -1,0 +1,49 @@
+<div class="app-layout">
+  <header class="navbar">
+    <div class="logo">
+      <span class="icon">✈️</span> IA Travel
+    </div>
+    
+    <div class="backend-selector">
+      <button 
+        [class.active-spring]="serveurActif === 'spring'" 
+        (click)="changerServeur('spring')">
+        ☕ Spring
+      </button>
+      <button 
+        [class.active-django]="serveurActif === 'django'" 
+        (click)="changerServeur('django')">
+        🎸 Django
+      </button>
+    </div>
+    
+    <nav class="nav-links">
+      <!-- On n'affiche les boutons que si quelqu'un est connecté -->
+      @if (authService.getUtilisateurActuel()) {
+        
+        <a routerLink="/recherche" routerLinkActive="active">
+          🔍 Rechercher un vol
+        </a>
+        
+        <a routerLink="/historique" routerLinkActive="active">
+          👤 Mon Historique
+        </a>
+
+        <a routerLink="/profil" routerLinkActive="active">
+          ⚙️ Mon Profil
+        </a>
+
+        @if (authService.estAdmin()) {
+          <button class="btn-admin" (click)="allerAuDashboard()">🛡️ Dashboard Admin</button>
+        }
+
+        <button class="btn-logout" (click)="deconnexion()">Déconnexion</button>
+
+      }
+    </nav>
+  </header>
+
+  <main class="main-content">
+    <router-outlet></router-outlet>
+  </main>
+</div>

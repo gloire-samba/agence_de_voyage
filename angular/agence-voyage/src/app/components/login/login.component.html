@@ -1,0 +1,16 @@
+<div class="login-container">
+  <div class="login-card">
+    <h2>Portail d'accès</h2>
+    <p>Choisissez votre mode de connexion pour tester l'application.</p>
+
+    <div class="login-actions">
+      <button class="btn-invite" (click)="seConnecterEnTantQue('INVITE')">
+        👤 Continuer en tant qu'Invité (Client)
+      </button>
+
+      <button class="btn-admin" (click)="seConnecterEnTantQue('ADMIN')">
+        🛡️ Connexion Administrateur (ID: 99)
+      </button>
+    </div>
+  </div>
+</div>

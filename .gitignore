@@ -1,0 +1,21 @@
+# Angular
+node_modules/
+dist/
+
+# Python / Django
+venv/
+__pycache__/
+*.sqlite3
+
+# Spring Boot / Java
+target/
+*.jar
+
+# Fichiers IA / Médias
+*.flac
+*.mp3
+*.wav
+
+# Fichiers secrets
+.env
+application-secret.properties
