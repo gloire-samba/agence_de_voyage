@@ -5,6 +5,7 @@ import com.stripe.model.PaymentIntent;
 import com.stripe.param.PaymentIntentCreateParams;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.beans.factory.annotation.Value;
+import jakarta.annotation.PostConstruct;
 
 import java.util.Map;
 
@@ -12,10 +13,13 @@ import java.util.Map;
 @RequestMapping("/api/paiement")
 public class PaiementController {
 
-    public PaiementController() {
-        // Spring va chercher la valeur dans application-secret.properties
-        @Value("${stripe.api.secretKey}")
-        private String stripeSecretKey;
+    // Spring va chercher la valeur dans application-secret.properties
+    @Value("${stripe.api.secretKey}")
+    private String stripeSecretKey;
+
+    @PostConstruct
+    public void init() {
+        Stripe.apiKey = stripeSecretKey;
     }
 
     @PostMapping("/create-intent")
