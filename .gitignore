@@ -19,3 +19,4 @@ target/
 # Fichiers secrets
 .env
 application-secret.properties
+testdb.mv.db
