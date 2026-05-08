@@ -19,7 +19,7 @@
     
     <nav class="nav-links">
       <!-- On n'affiche les boutons que si quelqu'un est connecté -->
-      @if (authService.getUtilisateurActuel()) {
+      @if (authService.isLoggedIn()) {
         
         <a routerLink="/recherche" routerLinkActive="active">
           🔍 Rechercher un vol
@@ -33,7 +33,7 @@
           ⚙️ Mon Profil
         </a>
 
-        @if (authService.estAdmin()) {
+        @if (authService.isAdmin()) {
           <button class="btn-admin" (click)="allerAuDashboard()">🛡️ Dashboard Admin</button>
         }
 

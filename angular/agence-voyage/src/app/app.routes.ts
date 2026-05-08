@@ -3,26 +3,46 @@ import { RechercheComponent } from './components/recherche/recherche.component';
 import { HistoriqueComponent } from './components/historique/historique.component';
 import { PaiementComponent } from './components/paiement/paiement.component';
 import { LoginComponent } from './components/login/login.component';
+import { InscriptionComponent } from './components/inscription/inscription.component';
 import { AdminDashboardComponent } from './components/admin-dashboard/admin-dashboard.component';
-// 👉 NOUVEAU : Import du profil
 import { ProfilComponent } from './components/profil/profil.component';
+import { adminGuard, authGuard } from './guards/auth.guard';
+import { AdminVoyagesComponent } from './components/admin-voyages/admin-voyages.component';
+import { AdminVoyageFormComponent } from './components/admin-voyage-form/admin-voyage-form.component';
+import { AdminUtilisateurAvisComponent } from './components/admin-utilisateur-avis/admin-utilisateur-avis.component';
+import { AdminUtilisateursComponent } from './components/admin-utilisateurs/admin-utilisateurs.component';
+import { AdminUtilisateurReservationsComponent } from './components/admin-utilisateur-reservations/admin-utilisateur-reservations.component';
+import { AdminUtilisateurFormComponent } from './components/admin-utilisateur-form/admin-utilisateur-form.component';
+import { AdminVoyageAvisComponent } from './components/admin-voyage-avis/admin-voyage-avis.component';
+
 
 export const routes: Routes = [
-  // Redirection par défaut vers le login
   { path: '', redirectTo: 'login', pathMatch: 'full' },
   { path: 'login', component: LoginComponent },
+  { path: 'inscription', component: InscriptionComponent },
   
-  // Interface Client (Invité)
-  { path: 'recherche', component: RechercheComponent },
-  { path: 'historique', component: HistoriqueComponent },
-  { path: 'profil', component: ProfilComponent }, // 👉 NOUVEAU : Route pour le profil
+  // 🔒 On verrouille l'accès aux visiteur normaux
+  { path: 'recherche', component: RechercheComponent, canActivate: [authGuard] },
+  { path: 'historique', component: HistoriqueComponent, canActivate: [authGuard] },
+  { path: 'profil', component: ProfilComponent, canActivate: [authGuard] },
+  { path: 'paiement/:reservationId/:prix', component: PaiementComponent, canActivate: [authGuard] },
   
-  // La route de paiement
-  { path: 'paiement/:reservationId/:prix', component: PaiementComponent },
+  { 
+    path: 'admin', 
+    component: AdminDashboardComponent, 
+    children: [
+      { path: '', redirectTo: 'voyages', pathMatch: 'full' },
+      { path: 'voyages', component: AdminVoyagesComponent },
+      { path: 'voyages/nouveau', component: AdminVoyageFormComponent },
+      { path: 'voyages/:id', component: AdminVoyageFormComponent },
+      { path: 'utilisateurs', component: AdminUtilisateursComponent },
+      { path: 'utilisateurs/:id/avis', component: AdminUtilisateurAvisComponent },
+      { path: 'voyages/:id/avis', component: AdminVoyageAvisComponent },
+      { path: 'utilisateurs/:id/modifier', component: AdminUtilisateurFormComponent },
+      // 👉 NOUVELLE ROUTE DE L'ÉTAPE D
+      { path: 'utilisateurs/:id/reservations', component: AdminUtilisateurReservationsComponent }
+    ]
+  },
   
-  // Interface Administrateur
-  { path: 'admin/dashboard', component: AdminDashboardComponent },
-
-  // 👉 CORRECTION : La sécurité Catch-All doit TOUJOURS être à la fin
   { path: '**', redirectTo: 'login' },
 ];

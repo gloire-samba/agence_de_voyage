@@ -2,33 +2,26 @@
   <h2>👤 Mon Profil</h2>
   <p class="subtitle">Gérez vos informations personnelles (ID: {{ idActuel }})</p>
 
-  @if (isLoading && !message) {
-    <p>Chargement de vos données...</p>
-  } @else {
-    <div class="form-card">
-      
-      @if (message) {
-        <div class="alert" [class.success]="message.includes('✅')">{{ message }}</div>
-      }
+  <div *ngIf="isLoading && !message" style="text-align: center; margin: 20px 0;">
+    <p>⏳ Chargement de vos données...</p>
+  </div>
 
-      <div class="form-group">
-        <label>Nom complet</label>
-        <input type="text" [(ngModel)]="monProfil.nom" placeholder="Votre nom">
-      </div>
+  <div class="form-card" *ngIf="!isLoading || message">
+    
+    <div *ngIf="message" class="alert" [class.success]="message.includes('✅')">{{ message }}</div>
 
-      <div class="form-group">
-        <label>Adresse Email</label>
-        <input type="email" [(ngModel)]="monProfil.email" placeholder="votre@email.com">
-      </div>
-
-      <div class="form-group">
-        <label>Nouveau mot de passe</label>
-        <input type="password" [(ngModel)]="monProfil.motDePasse" placeholder="Laissez vide pour conserver l'actuel">
-      </div>
-
-      <button class="btn-save" (click)="sauvegarder()" [disabled]="isLoading">
-        💾 Mettre à jour mon profil
-      </button>
+    <div class="form-group">
+      <label>Adresse Email</label>
+      <input type="email" [(ngModel)]="monProfil.email" placeholder="votre@email.com">
     </div>
-  }
+
+    <div class="form-group">
+      <label>Nouveau mot de passe</label>
+      <input type="password" [(ngModel)]="monProfil.motDePasse" placeholder="Laissez vide pour conserver l'actuel">
+    </div>
+
+    <button class="btn-save" (click)="sauvegarder()" [disabled]="isLoading">
+      💾 Mettre à jour mon profil
+    </button>
+  </div>
 </div>

@@ -44,28 +44,33 @@ export class VoyageService {
     return this.http.post<RechercheIntelligenteResponse>(url, formData);
   }
 
-  // 🎤 Envoi de l'avis vocal (Création ET Modification)
-  soumettreAvisVocal(reservationId: number, audioFile: Blob, note: number, avisId?: number): Observable<any> {
-    const formData = new FormData();
-    formData.append('audio', audioFile, 'avis.flac');
-    formData.append('reservationId', reservationId.toString()); 
-    formData.append('note', note.toString());
-    if (avisId) formData.append('avisId', avisId.toString()); 
+  // 1. Pour l'avis écrit
+  creerAvisTexte(reservationId: number, note: number, commentaire: string) {
+    const payload = { reservationId, note, commentaire };
+    const backend = this.serveurService.getBackend();
+    const baseUrl = environment.urls[backend];
     
-    const url = this.serveurService.getBackend() === 'spring'
-      ? `${this.apiRoot}/avis-vocal`
-      : `${this.apiRoot}/avis-vocal/`;
-      
-    return this.http.post(url, formData);
+    // 👉 On pointe bien vers /avis (plus de custom !)
+    const url = backend === 'django' ? `${baseUrl}/avis/` : `${baseUrl}/avis`;
+    return this.http.post(url, payload);
   }
 
-  // ⭐ Créer un avis textuel
-  creerAvisTexte(reservationId: number, note: number, commentaire: string): Observable<any> {
-    const url = this.serveurService.getBackend() === 'spring'
-      ? `${this.apiRoot}/avis`
-      : `${this.apiRoot}/avis/`;
-      
-    return this.http.post(url, { reservationId, note, commentaire });
+  // 2. Pour l'avis vocal
+  soumettreAvisVocal(reservationId: number, audioBlob: Blob, note: number, avisId?: number) {
+    const formData = new FormData();
+    formData.append('audio', audioBlob, 'avis_vocal.wav');
+    formData.append('reservationId', reservationId.toString());
+    formData.append('note', note.toString());
+
+    const backend = this.serveurService.getBackend();
+    const baseUrl = environment.urls[backend];
+
+    // 👉 L'URL vocale de Spring est /avis/vocal (plus de custom !)
+    const url = backend === 'django' 
+      ? `${baseUrl}/voyages/avis-vocal/` 
+      : `${baseUrl}/avis/vocal`;
+
+    return this.http.post(url, formData);
   }
 
   // ✏️ Modifier un avis existant

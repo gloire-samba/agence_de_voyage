@@ -13,6 +13,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import com.agence.voyage.repository.UtilisateurRepository;
 
 @Component
 @RequiredArgsConstructor
@@ -23,10 +24,23 @@ public class DataSeeder implements CommandLineRunner {
     private final SegmentService segmentService;
     private final AvisService avisService;
     private final ReservationRepository reservationRepository; 
+    private final UtilisateurRepository utilisateurRepository;  
 
     @Override
     public void run(String... args) {
-        if (!utilisateurService.recupererTous().isEmpty()) {
+
+        // Création de l'admin sans forcer l'ID
+        if (utilisateurRepository.findByEmail("admin@voyage.com").isEmpty()) {
+            Utilisateur admin = new Utilisateur();
+            admin.setEmail("admin@voyage.com");
+            admin.setMotDePasse("admin123");
+            admin.setRole("ROLE_ADMIN");
+            utilisateurRepository.save(admin);
+            System.out.println("✅ Admin créé (admin@voyage.com / admin123)");
+        }
+
+        // On s'arrête seulement s'il y a plus d'un utilisateur (l'admin + d'autres)
+        if (utilisateurRepository.count() > 1) {
             System.out.println("✅ Base de données déjà peuplée.");
             return;
         }

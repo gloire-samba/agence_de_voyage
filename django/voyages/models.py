@@ -12,10 +12,15 @@ class Utilisateur(models.Model):
 
     class Meta:
         db_table = 'UTILISATEUR'
+        
+    @property
+    def is_authenticated(self):
+        return True
 
     def __str__(self):
         return self.email
-
+    
+    
 class Voyage(models.Model):
     ville_depart = models.CharField(max_length=100)
     ville_arrivee = models.CharField(max_length=100)

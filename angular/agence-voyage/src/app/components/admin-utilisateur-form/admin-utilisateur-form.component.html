@@ -1,0 +1,31 @@
+<div class="crud-section">
+  <div class="section-header" style="justify-content: flex-start; gap: 20px;">
+    <button class="btn-action" style="padding: 10px; border-radius: 5px; font-weight: bold;" (click)="retour()">⬅ Retour</button>
+    <h3>Modification Utilisateur #{{ utilisateurId }}</h3>
+  </div>
+
+  @if (isLoading) {
+    <p>Chargement des données de l'utilisateur...</p>
+  } @else {
+    <div style="max-width: 500px; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+      
+      <div style="margin-bottom: 20px;">
+        <label style="display: block; font-weight: bold; margin-bottom: 8px;">Adresse Email :</label>
+        <input type="email" [(ngModel)]="formUtilisateur.email" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px;">
+      </div>
+
+      <div style="margin-bottom: 30px;">
+        <label style="display: block; font-weight: bold; margin-bottom: 8px;">Rôle d'accès :</label>
+        <select [(ngModel)]="formUtilisateur.role" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px;">
+          <option value="ROLE_USER">Utilisateur Simple (ROLE_USER)</option>
+          <option value="ROLE_ADMIN">Administrateur (ROLE_ADMIN)</option>
+        </select>
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; gap: 10px;">
+        <button class="btn-action btn-delete" (click)="retour()">Annuler</button>
+        <button class="btn-add" (click)="sauvegarder()">💾 Sauvegarder</button>
+      </div>
+    </div>
+  }
+</div>

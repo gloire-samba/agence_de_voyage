@@ -7,6 +7,14 @@ from typing import Optional
 import google.generativeai as genai
 import datetime
 
+from dotenv import load_dotenv # 👈 NOUVEAU
+
+   # Charge le fichier .env
+load_dotenv() # 👈 NOUVEAU
+
+# 👈 NOUVEAU : On récupère la clé proprement, sans la coder en dur
+api_key = os.getenv("GOOGLE_API_KEY")
+
 app = FastAPI(
     title="Service IA - Agence de Voyage (Version Cloud)",
     description="Microservice NLP et ASR utilisant Gemini 2.5 pour ménager le PC.",
@@ -14,8 +22,7 @@ app = FastAPI(
 )
 
 # --- CONFIGURATION GEMINI ---
-# Pense à bien définir cette variable d'environnement sur ton système ou à remplacer par ta clé en dur pour tester
-api_key = os.environ.get("GOOGLE_API_KEY", "AIzaSyCxg6gzxI_yrqrsL3FitI5nIGE0tytS2vo")
+
 genai.configure(api_key=api_key)
 
 # On charge le modèle une seule fois

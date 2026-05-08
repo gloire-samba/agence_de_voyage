@@ -5,7 +5,6 @@ import lombok.*;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 @Entity
@@ -33,10 +32,9 @@ public class Utilisateur {
     @Column(name = "date_inscription")
     private LocalDateTime dateInscription;
 
-    // Relation avec les avis (optionnel, pour la navigation inverse)
     @OneToMany(mappedBy = "utilisateur", cascade = CascadeType.ALL)
     @Builder.Default
-    @JsonIgnore //
+    @JsonIgnore
     private List<Avis> avis = new ArrayList<>();
 
     @PrePersist

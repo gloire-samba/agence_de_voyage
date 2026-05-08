@@ -1,0 +1,50 @@
+<div class="crud-section">
+  <div class="section-header" style="justify-content: flex-start; gap: 20px;">
+    <button class="btn-action" style="padding: 10px; border-radius: 5px; font-weight: bold;" (click)="retour()">⬅ Retour</button>
+    <h3>Billetterie Client - Utilisateur #{{ utilisateurId }}</h3>
+  </div>
+
+  @if (isLoading) {
+    <p>Chargement des billets...</p>
+  } @else {
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Voyage Actuel</th>
+          <th>Date Résa</th>
+          <th>Prix Payé</th>
+          <th>Statut</th>
+          <th>Échanger / Modifier</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (r of reservations; track r.id) {
+          <tr>
+            <td><strong>#{{ r.id }}</strong></td>
+            <td>
+              <select [(ngModel)]="r.voyage_id" style="padding: 5px; border-radius: 4px; border: 1px solid #cbd5e1;">
+                @for (v of voyagesDisponibles; track v.id) {
+                  <option [value]="v.id">#{{v.id}} : {{v.villeDepart || v.ville_depart}} -> {{v.villeArrivee || v.ville_arrivee}}</option>
+                }
+              </select>
+            </td>
+            <td>{{ (r.dateReservation || r.date_reservation) | date:'short' }}</td>
+            <td>{{ r.prixPaye || r.prix_paye }} €</td>
+            <td>
+              <select [(ngModel)]="r.statut" [ngClass]="r.statut" class="badge-statut">
+                <option value="CONFIRME">CONFIRME</option>
+                <option value="EN_ATTENTE">EN_ATTENTE</option>
+                <option value="ANNULE">ANNULE</option>
+              </select>
+            </td>
+            <td class="action-cells">
+              <button class="btn-action btn-edit" (click)="mettreAJourReservation(r)">💾 Appliquer</button>
+              <button class="btn-action btn-delete" (click)="annulerReservation(r.id)">🚫 Annuler</button>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  }
+</div>

@@ -1,0 +1,51 @@
+<div class="crud-section">
+  
+  <div class="section-header">
+    <h3>Catalogue des Voyages</h3>
+    <button class="btn-add" (click)="allerVersFormulaire()">+ Nouveau Voyage</button>
+  </div>
+
+  <div class="toolbar" style="margin-bottom: 20px;">
+    <input type="text" [(ngModel)]="texteRecherche" placeholder="Rechercher par ID, Ville ou Statut..." 
+           style="width: 100%; max-width: 400px; padding: 10px; border-radius: 6px; border: 1px solid #cbd5e1; outline: none;">
+  </div>
+  
+  <table class="admin-table">
+    <thead>
+      <tr>
+        <th (click)="changerTri('id')" style="cursor: pointer;" title="Trier par ID">ID ↕️</th>
+        <th (click)="changerTri('villeDepart')" style="cursor: pointer;" title="Trier par destination">Itinéraire ↕️</th>
+        <th (click)="changerTri('prixTotal')" style="cursor: pointer;" title="Trier par prix">Prix ↕️</th>
+        <th (click)="changerTri('statut')" style="cursor: pointer;" title="Trier par statut">Statut ↕️</th>
+        <th>Actions Administrateur</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (v of voyagesFiltres; track v.id) {
+        <tr>
+          <td><strong>#{{ v.id }}</strong></td>
+          <td>{{ v.villeDepart || v.ville_depart }} ➔ {{ v.villeArrivee || v.ville_arrivee }}</td>
+          <td>{{ v.prixTotal || v.prix_total }} €</td>
+          <td>
+            <span class="badge-statut" [ngClass]="v.statut || 'A_VENIR'">
+              {{ v.statut || 'A_VENIR' }}
+            </span>
+          </td>
+          <td class="action-cells">
+            <button class="btn-action btn-edit" (click)="allerVersFormulaire(v.id)">✏️ Modifier</button>
+            <button class="btn-action btn-view" (click)="voirAvisVoyage(v.id)">⭐ Avis</button>
+            <button class="btn-action btn-delete" (click)="supprimerOuAnnulerVoyage(v)">🚫 Annuler / Suppr.</button>
+          </td>
+        </tr>
+      }
+      
+      @if (voyagesFiltres.length === 0) {
+        <tr>
+          <td colspan="5" style="text-align: center; color: #94a3b8; padding: 25px;">
+            Aucun voyage ne correspond à votre recherche.
+          </td>
+        </tr>
+      }
+    </tbody>
+  </table>
+</div>

@@ -21,7 +21,13 @@ export class AppComponent {
   serveurActif: BackendType = this.serveurService.getBackend();
 
   changerServeur(backend: BackendType) {
+    // 1. On déconnecte l'utilisateur
+    this.authService.logout(); 
+    
+    // 2. On change le serveur
     this.serveurService.setBackend(backend);
+    
+    // 3. On recharge l'application
     window.location.href = '/'; 
   }
 
@@ -30,7 +36,7 @@ export class AppComponent {
   }
 
   deconnexion() {
-    this.authService.deconnexion();
+    this.authService.logout()
     this.router.navigate(['/login']);
   }
 }

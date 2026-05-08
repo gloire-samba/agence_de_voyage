@@ -10,7 +10,18 @@ class Command(BaseCommand):
     help = 'Génère des données fictives pour la base de données'
 
     def handle(self, *args, **kwargs):
-        if Utilisateur.objects.exists():
+        
+        # 1. CRÉATION DE L'ADMIN EN CLAIR
+        if not Utilisateur.objects.filter(email="admin@voyage.com").exists():
+            Utilisateur.objects.create(
+                email="admin@voyage.com",
+                mot_de_passe="admin123",
+                role="ROLE_ADMIN"
+            )
+            self.stdout.write(self.style.SUCCESS("👑 Compte Administrateur (admin@voyage.com) créé !"))
+            
+        # On s'arrête seulement s'il y a plus que juste l'admin
+        if Utilisateur.objects.count() > 1:
             self.stdout.write(self.style.WARNING('✅ Base de données déjà peuplée.'))
             return
 

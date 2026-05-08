@@ -33,6 +33,11 @@ export class UtilisateurService {
   }
 
   modifier(id: number, utilisateur: any): Observable<any> {
+    // 👉 Django exige PATCH pour les modifications partielles (sans mot de passe)
+    if (this.serveurService.getBackend() === 'django') {
+      return this.http.patch<any>(this.formatUrl(id), utilisateur);
+    }
+    // Spring tolère le PUT
     return this.http.put<any>(this.formatUrl(id), utilisateur);
   }
 

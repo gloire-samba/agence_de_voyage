@@ -1,6 +1,6 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import UtilisateurViewSet, VoyageViewSet, SegmentViewSet, AvisViewSet, ReservationViewSet
+from .views import AuthAPIView, GithubCallbackView, GithubLoginView, GoogleCallbackView, GoogleLoginView, RegisterAPIView, UtilisateurViewSet, VoyageViewSet, SegmentViewSet, AvisViewSet, ReservationViewSet
 from . import views
 
 # Le router gère automatiquement les URLs pour les ViewSets
@@ -17,5 +17,15 @@ urlpatterns = [
     path('api/voyages/recherche-vocale/', views.recherche_vocale, name='recherche-vocale'),
     path('api/voyages/avis-vocal/', views.avis_vocal, name='avis-vocal'),
     path('api/paiement/create-intent/', views.create_payment_intent, name='create-payment-intent'),
+    # 🔐 Routes d'authentification CLASSIQUE (sans magie)
+    path('api/auth/login/', AuthAPIView.as_view(), name='login'),
+    path('api/auth/register/', RegisterAPIView.as_view(), name='register'),
+    # 👉 NOUVELLES ROUTES SOCIALES (Attention, pas de /api/ sur les callbacks pour respecter la config)
+    path('api/auth/google/login/', GoogleLoginView.as_view()),
+    path('accounts/google/login/callback/', GoogleCallbackView.as_view()),
+    
+    path('api/auth/github/login/', GithubLoginView.as_view()),
+    path('accounts/github/login/callback/', GithubCallbackView.as_view()),
+    
     path('api/', include(router.urls)),
 ]

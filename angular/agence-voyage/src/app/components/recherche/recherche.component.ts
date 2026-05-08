@@ -46,7 +46,7 @@ export class RechercheComponent implements OnInit {
   estAdmin: boolean = false;
   
   ngOnInit() {
-    this.estAdmin = this.authService.estAdmin();
+    this.estAdmin = this.authService.isAdmin();
 
     this.voyageService.getTousLesVoyages().subscribe({
       next: (voyages) => {
@@ -188,8 +188,7 @@ export class RechercheComponent implements OnInit {
 
   declencherReservation(voyage: Voyage) {
     const prix = voyage.prixTotal || (voyage as any).prix_total;
-    // 👉 CORRECTION : On récupère dynamiquement l'ID (99 pour l'admin, 1 pour l'invité)
-    const userId = this.authService.getUtilisateurActuel()?.id || 1;
+    const userId = this.authService.getUserId();
     
     let nouvelleResa: any = {};
     if (this.serveurService.getBackend() === 'spring') {
@@ -216,7 +215,7 @@ export class RechercheComponent implements OnInit {
   }
 
   deconnexion() {
-    this.authService.deconnexion();
+    this.authService.logout();
     this.router.navigate(['/login']);
   }
 

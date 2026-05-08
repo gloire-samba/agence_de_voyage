@@ -1,0 +1,44 @@
+<div class="crud-section">
+  
+  <div class="section-header">
+    <h3>Gestion des Comptes Utilisateurs</h3>
+  </div>
+
+  <div class="toolbar" style="margin-bottom: 20px;">
+    <input type="text" [(ngModel)]="texteRecherche" placeholder="Rechercher par ID, Email ou Rôle..." 
+           style="width: 100%; max-width: 400px; padding: 10px; border-radius: 6px; border: 1px solid #cbd5e1; outline: none;">
+  </div>
+  
+  <table class="admin-table">
+    <thead>
+      <tr>
+        <th (click)="changerTri('id')" style="cursor: pointer;">ID ↕️</th>
+        <th (click)="changerTri('email')" style="cursor: pointer;">Adresse Email ↕️</th>
+        <th (click)="changerTri('role')" style="cursor: pointer;">Rôle ↕️</th>
+        <th>Actions Administrateur</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (u of utilisateursFiltres; track u.id) {
+        <tr>
+          <td><strong>#{{ u.id }}</strong></td>
+          <td>{{ u.email || 'N/A' }}</td>
+          <td>
+            <span class="badge-statut" [ngClass]="u.role === 'ROLE_ADMIN' ? 'TERMINE' : 'A_VENIR'">
+              {{ u.role || 'ROLE_USER' }}
+            </span>
+          </td>
+          <td class="action-cells">
+            <button class="btn-action btn-edit" (click)="modifierUtilisateur(u.id)">✏️ Modifier</button> 
+            <button class="btn-action btn-view" (click)="voirReservationsUtilisateur(u.id)">🎫 Réservations</button>
+            <button class="btn-action btn-view" (click)="voirAvisUtilisateur(u.id)">⭐ Modérer Avis</button>
+            <button class="btn-action btn-delete" (click)="supprimerUtilisateur(u.id)">🚫 Bannir</button>
+          </td>
+        </tr>
+      }
+      @if (utilisateursFiltres.length === 0) {
+        <tr><td colspan="4" style="text-align: center; color: #94a3b8; padding: 25px;">Aucun utilisateur trouvé.</td></tr>
+      }
+    </tbody>
+  </table>
+</div>

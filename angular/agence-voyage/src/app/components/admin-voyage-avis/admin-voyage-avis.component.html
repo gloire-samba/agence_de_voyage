@@ -1,0 +1,38 @@
+<div class="crud-section">
+  <div class="section-header" style="justify-content: flex-start; gap: 20px;">
+    <button class="btn-action" style="padding: 10px; border-radius: 5px; font-weight: bold;" (click)="retour()">⬅ Retour</button>
+    <h3>Modération des Avis - Voyage #{{ voyageId }}</h3>
+  </div>
+
+  @if (isLoading) {
+    <p>Chargement des avis...</p>
+  } @else {
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th>ID Avis</th>
+          <th>Auteur (ID Utilisateur)</th>
+          <th>Note</th>
+          <th>Commentaire</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (a of avisList; track a.id) {
+          <tr>
+            <td><strong>#{{ a.id }}</strong></td>
+            <td>Utilisateur #{{ a.utilisateur?.id || a.utilisateur_id || a.utilisateur || 'Inconnu' }}</td>
+            <td><strong>{{ a.note }} / 5 ⭐</strong></td>
+            <td style="max-width: 400px; font-style: italic;">"{{ a.commentaire }}"</td>
+            <td class="action-cells">
+              <button class="btn-action btn-delete" (click)="supprimerAvis(a.id)">🗑️ Censurer</button>
+            </td>
+          </tr>
+        }
+        @if (avisList.length === 0) {
+          <tr><td colspan="5" style="text-align: center; color: #94a3b8; padding: 25px;">Aucun avis pour ce voyage.</td></tr>
+        }
+      </tbody>
+    </table>
+  }
+</div>

@@ -1,0 +1,78 @@
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 25px;
+  border-bottom: 2px solid #e2e8f0;
+  padding-bottom: 15px;
+}
+
+.section-header h3 { margin: 0; color: #0f172a; font-size: 26px; font-weight: 800; }
+
+.btn-add {
+  background-color: #10b981;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+/* --- TABLEAU DES VOYAGES --- */
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+}
+
+.admin-table th, .admin-table td {
+  padding: 15px;
+  text-align: left;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.admin-table th {
+  background-color: #f8fafc;
+  color: #64748b;
+  text-transform: uppercase;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+/* --- BADGES DE STATUT --- */
+.badge-statut {
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 800;
+  display: inline-block;
+}
+
+.A_VENIR { background: #dbeafe; color: #1d4ed8; }
+.EN_COURS { background: #fef3c7; color: #b45309; }
+.TERMINE { background: #d1fae5; color: #047857; }
+.ANNULE { background: #fee2e2; color: #b91c1c; }
+
+/* --- BOUTONS D'ACTION --- */
+.action-cells { display: flex; gap: 8px; }
+
+.btn-action {
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  background: white;
+  border: 1px solid #cbd5e1;
+  transition: 0.2s;
+}
+
+.btn-edit { color: #3b82f6; }
+.btn-view { color: #8b5cf6; }
+.btn-delete { color: #ef4444; border-color: #fca5a5; }
+
+.btn-action:hover { background: #f8fafc; }

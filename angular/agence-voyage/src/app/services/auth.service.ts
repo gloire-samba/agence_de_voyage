@@ -1,41 +1,87 @@
-import { Injectable } from '@angular/core';
-import { BehaviorSubject } from 'rxjs';
+import { Injectable, inject } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { Router } from '@angular/router';
+import { BehaviorSubject, tap } from 'rxjs';
+import { ServeurService } from './serveur.service';
+import { environment } from '../../environments/environment.development';
 
-export interface UtilisateurSession {
-  id: number;
-  role: 'INVITE' | 'ADMIN';
+export interface LoginResponse {
+  token: string;
+  role: string;
+  email: string;
+  utilisateurId: string;
 }
 
-@Injectable({
-  providedIn: 'root'
-})
+@Injectable({ providedIn: 'root' })
 export class AuthService {
-  // Par défaut, personne n'est connecté
-  private sessionSource = new BehaviorSubject<UtilisateurSession | null>(null);
-  session$ = this.sessionSource.asObservable();
+  private http = inject(HttpClient);
+  private router = inject(Router);
+  private serveurService = inject(ServeurService);
 
-  constructor() {}
+  // Initialisation avec sessionStorage au lieu de localStorage
+  private currentUserSubject = new BehaviorSubject<LoginResponse | null>(this.getUserFromStorage());
+  public currentUser$ = this.currentUserSubject.asObservable();
 
-  connexionInvite() {
-    // L'invité (ou client standard) garde l'ID 1 comme tu le faisais avant
-    this.sessionSource.next({ id: 1, role: 'INVITE' });
+  private getUserFromStorage(): LoginResponse | null {
+    const data = sessionStorage.getItem('userSession');
+    return data ? JSON.parse(data) : null;
   }
 
-  connexionAdmin() {
-    // L'admin utilise un ID qui existe vraiment en base (ex: 2)
-    this.sessionSource.next({ id: 2, role: 'ADMIN' });
+  getBaseUrl(): string {
+    const backend = this.serveurService.getBackend();
+    return environment.urls[backend];
   }
 
-  deconnexion() {
-    this.sessionSource.next(null);
+  login(email: string, motDePasse: string) {
+    const baseUrl = this.getBaseUrl();
+    const backend = this.serveurService.getBackend();
+
+    // Gestion du slash de fin pour Django
+    const loginUrl = backend === 'django' 
+      ? `${baseUrl}/auth/login/` 
+      : `${baseUrl}/auth/login`;
+
+    return this.http.post<LoginResponse>(loginUrl, { email, motDePasse }).pipe(
+      tap(res => {
+        sessionStorage.setItem('userSession', JSON.stringify(res));
+        this.currentUserSubject.next(res);
+      })
+    );
   }
 
-  getUtilisateurActuel(): UtilisateurSession | null {
-    return this.sessionSource.value;
+  logout() {
+    sessionStorage.removeItem('userSession');
+    this.currentUserSubject.next(null);
+    this.router.navigate(['/login']);
   }
 
-  estAdmin(): boolean {
-    const user = this.sessionSource.value;
-    return user !== null && user.role === 'ADMIN';
+  getToken(): string | null {
+    return this.currentUserSubject.value?.token || null;
+  }
+
+  getUserId(): number {
+    // L'ID est récupéré depuis la session retournée par le serveur
+    return Number(this.currentUserSubject.value?.utilisateurId) || 0;
+  }
+
+  isAdmin(): boolean {
+    return this.currentUserSubject.value?.role === 'ROLE_ADMIN';
+  }
+
+  isLoggedIn(): boolean {
+    return !!this.currentUserSubject.value;
+  }
+
+  register(data: any) {
+    const isDjango = this.getBaseUrl().includes('8000');
+    const url = `${this.getBaseUrl()}/auth/register${isDjango ? '/' : ''}`;
+    return this.http.post(url, data);
+  }
+
+  // Utilisé par le login.component pour sauvegarder la session après une connexion sociale (Google/Github)
+  sauvegarderSession(token: string, role: string, email: string, utilisateurId: string) {
+    const res: LoginResponse = { token, role, email, utilisateurId };
+    sessionStorage.setItem('userSession', JSON.stringify(res));
+    this.currentUserSubject.next(res);
   }
 }

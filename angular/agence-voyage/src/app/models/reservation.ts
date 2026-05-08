@@ -8,5 +8,5 @@ export interface Reservation {
   voyage: Voyage | number;           // Idem
   prixPaye: number;
   dateConfirmation?: string;
-  statut: 'EN_ATTENTE' | 'CONFIRME' | 'ANNULE';
+  statut: 'CONFIRME' | 'EN_ATTENTE' | 'ANNULE' | 'REMBOURSE';
 }

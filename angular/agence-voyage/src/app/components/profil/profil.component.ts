@@ -1,7 +1,7 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { UtilisateurService } from '../../services/utilisateur.service';
+import { HttpClient } from '@angular/common/http';
 import { AuthService } from '../../services/auth.service';
 
 @Component({
@@ -12,13 +12,12 @@ import { AuthService } from '../../services/auth.service';
   styleUrls: ['./profil.component.css']
 })
 export class ProfilComponent implements OnInit {
-  private utilisateurService = inject(UtilisateurService);
-  private authService = inject(AuthService);
+  private http = inject(HttpClient);
+  public authService = inject(AuthService);
+  private cdr = inject(ChangeDetectorRef); // 👉 Le marteau pour forcer l'affichage
 
-  // On récupère strictement l'ID de l'utilisateur connecté (1 pour l'invité)
-  idActuel = this.authService.getUtilisateurActuel()?.id || 1;
-  
-  monProfil: any = { nom: '', email: '', motDePasse: '' };
+  idActuel = this.authService.getUserId();
+  monProfil: any = { email: '', motDePasse: '' };
   message: string = '';
   isLoading: boolean = true;
 
@@ -26,16 +25,24 @@ export class ProfilComponent implements OnInit {
     this.chargerMonProfil();
   }
 
+  private getUrl(): string {
+    const baseUrl = this.authService.getBaseUrl(); 
+    const isDjango = baseUrl.includes('8000');
+    return `${baseUrl}/utilisateurs/${this.idActuel}${isDjango ? '/' : ''}`;
+  }
+
   chargerMonProfil() {
-    this.utilisateurService.getUn(this.idActuel).subscribe({
+    this.isLoading = true;
+    this.http.get<any>(this.getUrl()).subscribe({
       next: (data) => {
-        // On ne pré-remplit pas le mot de passe pour des raisons de sécurité
-        this.monProfil = { nom: data.nom, email: data.email, motDePasse: '' };
+        this.monProfil = { email: data.email, motDePasse: '' };
         this.isLoading = false;
+        this.cdr.detectChanges(); // Force la disparition du "Chargement..."
       },
       error: (err) => {
         this.message = "❌ Impossible de charger vos informations.";
         this.isLoading = false;
+        this.cdr.detectChanges();
       }
     });
   }
@@ -44,15 +51,24 @@ export class ProfilComponent implements OnInit {
     this.isLoading = true;
     this.message = '';
     
-    // L'utilisateur ne passe QUE son propre ID à la méthode modifier
-    this.utilisateurService.modifier(this.idActuel, this.monProfil).subscribe({
+    // On n'envoie que ce qui a été modifié pour éviter l'erreur 400 (Bad Request)
+    const payload: any = { email: this.monProfil.email };
+    if (this.monProfil.motDePasse && this.monProfil.motDePasse.trim() !== '') {
+       payload.motDePasse = this.monProfil.motDePasse;
+    }
+
+    // 👉 On utilise PATCH au lieu de PUT !
+    this.http.patch(this.getUrl(), payload).subscribe({
       next: () => {
-        this.message = "✅ Vos informations ont été mises à jour avec succès !";
+        this.message = "✅ Profil mis à jour !";
         this.isLoading = false;
+        this.monProfil.motDePasse = ''; // On vide le champ par sécurité
+        this.cdr.detectChanges();
       },
       error: (err) => {
         this.message = "❌ Erreur lors de la mise à jour.";
         this.isLoading = false;
+        this.cdr.detectChanges();
       }
     });
   }
