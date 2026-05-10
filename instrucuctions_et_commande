@@ -209,3 +209,36 @@ On implémente l'envoi d'e-mail automatique lors d'une annulation de voyage par 
 On crée tes fameux boutons "Rembourser" et "Changer de place" dans l'historique du client avec les appels à l'API Stripe.
 
 Si cette approche te semble logique, on peut attaquer la Phase 1 ! Dis-moi par quoi tu veux qu'on commence : l'interface globale du Dashboard ou la logique de protection contre la suppression en base de données ?
+
+
+
+
+questions avant de lancer
+
+il n'y a rien a ajouter ou modifier sur angular ?
+
+quand on fait une réservations est ce que ça envoie un mail que la réservation a été bien faite ?
+
+quand on annulle le voyage ou l'on est inscrit est ce qu'on reçoit le mail pour prévenir que le voyage est annullé puis il y a le bouttons soit pour demander un remboursement complet ou soit un échange de place qui apparaisse ?
+sachant que pour échange de place il y aura 3 cas, 
+le cas ou il faut payer un supplément lorsqu'on passe a un voyage plus chere (avec un mail de confirmation que le changement a été fait et le prix que l'on a du rajouté)
+le cas ou on est rembourser de la différence lorsqu'on passe a un voyage moins chere (avec un mail de confirmation que le changement a été fait la différence qui a été rendu)
+le cas ou on change juste de place mais avec un mail pour prévenir qu'on a changé de place
+
+
+j'ai une autre question 
+je te présente mais excuse mais je crois que dans la réservations on a oublié l'élément le plus important, la place (ou le siege la ou on se trouve), car quand on fait une réservation on a un siege qui nous ai attibué, la on vas faire simple il faut juste généré un chiffre au hazard et une lettre mais aussi faire ensorte qu'avant de donnée cette place qu'aucune perssonne de ce voyage n'ai ce chiffre
+
+
+du coup il faudra refaire tout spring, tout django (les fichier seed inclus pour spring et django) et  tout angular non seulement pour l'ajouter, pour l'admin qu'il puisse aussi retrouvé un utilisateur par sa place, et aussi ajouter la place dans filtrage et le triage
+
+je te présente encore mes excuse mais je crois qu'on a aussi oublié 2 attribut important dans voyage, qui sont le nombre de place disponible et un autre statu qui nous indique si il est complet ou pas, ça voudras aussi dire que l'on ne peut pas réserver un voyage complet
+
+du coup il faudra refaire tout spring, tout django , les fichier seed pour spring et django afin de creer des voyages pleins et d'autres qui ne sont pas plein, 
+et  tout angular parce qu'il faudra modifier catalogue pour n'afficher que les voyage qui ne sont pas plein ainsi que le nombre de place restante lors de la réservations et aussi pour l'ajouter pour l'admin qu'il puisse aussi retrouvé un voyage par son nombre de place, les places, restante, et ceux qui sont plein, dans filtrage et le triage
+
+et il faudra faire tout ces ajout sans casser ce qui fonctionnait déja avant
+
+je suis vraiment désolé
+
+pour l'instant ne code rien 

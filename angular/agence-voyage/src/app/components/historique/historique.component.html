@@ -23,6 +23,7 @@
           <tr>
             <th>N° Commande</th>
             <th>Trajet</th>
+            <th>Places</th> 
             <th>Prix Payé</th>
             <th>Date</th>
             <th>Statut</th>
@@ -42,6 +43,10 @@
                 </div>
               </td>
               
+              <td>
+                <span class="badge-siege">{{ getSieges(res) }}</span>
+              </td>
+
               <td class="prix">{{ getPrixPaye(res) | currency:'EUR':'symbol':'1.0-2' }}</td>
               
               <td>
@@ -74,7 +79,7 @@
                   </div>
                 }
 
-                @else if (res.statut === 'EN_ATTENTE' || res.statut === 'ANNULE') {
+                @else if (res.statut === 'EN_ATTENTE' || res.statut === 'ANNULE' || res.statut === 'REMBOURSE') {
                   <div class="actions-groupe">
                     <button class="btn-payer-historique" (click)="allerAuPaiement(res)">💳 Payer</button>
                     @if (res.statut === 'EN_ATTENTE') {
@@ -85,16 +90,19 @@
 
                 @else if (res.statut === 'CONFIRME') {
                   <div class="actions-avis">
+                    
+                    <button class="btn-action-avis btn-billet" (click)="ouvrirBillet(res)">🎟️ Mon Billet</button>
+
                     @if (getMonAvis(res); as monAvis) {
                       <span class="badge-note">⭐ {{ monAvis.note }}/5</span>
-                      <span style="display: block; font-size: 12px; color: #64748b; margin-bottom: 5px;">
-                        Posté le {{ getDateAvis(monAvis) | date:'dd/MM/yyyy à HH:mm' }}
-                      </span>
-                      <button class="btn-action-avis edit-texte" (click)="ouvrirFormulaireAvis(res.id, monAvis)">✏️ Modifier mon avis</button>
-                      <button class="btn-action-avis btn-supprimer" (click)="supprimerAvis(monAvis.id)" title="Supprimer mon avis">🗑️</button>
+                      <button class="btn-action-avis edit-texte" (click)="ouvrirFormulaireAvis(res.id, monAvis)" title="Modifier">✏️</button>
+                      <button class="btn-action-avis btn-supprimer" (click)="supprimerAvis(monAvis.id)" title="Supprimer">🗑️</button>
                     } @else {
-                      <button class="btn-action-avis add-texte" (click)="ouvrirFormulaireAvis(res.id)">⭐ Laisser un avis</button>
+                      <button class="btn-action-avis add-texte" (click)="ouvrirFormulaireAvis(res.id)">⭐ Avis</button>
                     }
+                    
+                    <button class="btn-annuler" style="width: 100%; margin-top: 8px;" (click)="annulerReservation(res.id)">Annuler le vol</button>
+
                   </div>
                 } @else {
                   <span class="no-action">-</span>
@@ -116,4 +124,50 @@
     (fermer)="fermerFormulaire(false)"
     (avisSoumis)="fermerFormulaire(true)">
   </app-avis-form>
+}
+
+@if (afficherModalBillet && reservationBillet) {
+  <div class="modal-overlay" (click)="fermerBillet()">
+    <div class="ticket-modal" (click)="$event.stopPropagation()">
+      
+      <div class="ticket-header">
+        <h3>CARTE D'EMBARQUEMENT</h3>
+        <button class="btn-close-ticket" (click)="fermerBillet()">✖</button>
+      </div>
+
+      <div class="ticket-body">
+        <div class="ticket-trajet">
+          <span class="t-ville">{{ getVilleDepart(reservationBillet) }}</span>
+          <span class="t-fleche">✈️</span>
+          <span class="t-ville">{{ getVilleArrivee(reservationBillet) }}</span>
+        </div>
+
+        <div class="ticket-details">
+          <div class="ticket-info">
+            <span class="t-label">N° Commande</span>
+            <span class="t-valeur">#{{ reservationBillet.id }}</span>
+          </div>
+          <div class="ticket-info">
+            <span class="t-label">Date d'achat</span>
+            <span class="t-valeur">{{ getDateConfirmation(reservationBillet) | date:'dd/MM/yyyy' }}</span>
+          </div>
+          <div class="ticket-info">
+            <span class="t-label">Prix Total</span>
+            <span class="t-valeur">{{ getPrixPaye(reservationBillet) | currency:'EUR':'symbol':'1.0-0' }}</span>
+          </div>
+          <div class="ticket-info siege-info">
+            <span class="t-label">SIÈGE(S)</span>
+            <span class="t-valeur t-siege">{{ getSieges(reservationBillet) }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="ticket-footer">
+        <button class="btn-telecharger-pdf" (click)="telechargerPDF()">
+          📄 Télécharger au format PDF
+        </button>
+      </div>
+
+    </div>
+  </div>
 }

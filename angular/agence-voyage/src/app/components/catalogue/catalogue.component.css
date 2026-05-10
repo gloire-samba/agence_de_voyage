@@ -318,3 +318,71 @@
 .avis-date { color: #94a3b8; }
 .avis-note { font-size: 1.2rem; margin-bottom: 8px; }
 .avis-commentaire { color: #475569; font-style: italic; font-size: 0.95rem; }
+
+/* ==========================================
+   GESTION DES PLACES ET COMPTEURS
+   ========================================== */
+.badge-place {
+  background-color: #e0f2fe;
+  color: #0284c7;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  font-weight: bold;
+}
+.badge-place.dernieres-places {
+  background-color: #fef3c7;
+  color: #d97706;
+  animation: pulse-orange 2s infinite;
+}
+
+@keyframes pulse-orange {
+  0% { box-shadow: 0 0 0 0 rgba(217, 119, 6, 0.4); }
+  70% { box-shadow: 0 0 0 6px rgba(217, 119, 6, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(217, 119, 6, 0); }
+}
+
+.reservation-actions {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+}
+
+.compteur-places {
+  display: flex;
+  align-items: center;
+  background: #f1f5f9;
+  border-radius: 8px;
+  padding: 4px;
+  border: 1px solid #cbd5e1;
+}
+
+.compteur-places button {
+  border: none;
+  background: white;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
+  color: #334155;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  transition: 0.2s;
+}
+
+.compteur-places button:hover:not(:disabled) {
+  background: #e2e8f0;
+}
+
+.compteur-places button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.compteur-places span {
+  margin: 0 12px;
+  font-weight: bold;
+  color: #0f172a;
+  min-width: 15px;
+  text-align: center;
+}

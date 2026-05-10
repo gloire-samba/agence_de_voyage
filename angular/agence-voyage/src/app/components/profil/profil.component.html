@@ -17,7 +17,16 @@
 
     <div class="form-group">
       <label>Nouveau mot de passe</label>
-      <input type="password" [(ngModel)]="monProfil.motDePasse" placeholder="Laissez vide pour conserver l'actuel">
+      <div class="password-wrapper">
+        <input 
+          [type]="hidePassword ? 'password' : 'text'" 
+          [(ngModel)]="monProfil.motDePasse" 
+          placeholder="Laissez vide pour conserver l'actuel"
+        >
+        <button type="button" class="btn-eye" (click)="togglePasswordVisibility()">
+          {{ hidePassword ? '👁️' : '🙈' }}
+        </button>
+      </div>
     </div>
 
     <button class="btn-save" (click)="sauvegarder()" [disabled]="isLoading">

@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { ChangeDetectorRef, Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
@@ -18,6 +18,7 @@ export class LoginComponent {
   public serveurService = inject(ServeurService);
   private router = inject(Router);
   public route = inject(ActivatedRoute); // 👉 Injection pour lire l'URL
+  private cdr = inject(ChangeDetectorRef); // 👉 NOUVEAU
 
   isLoginMode = true; 
   hidePassword = true;
@@ -80,6 +81,7 @@ export class LoginComponent {
         },
         error: () => {
           this.messageErreur = "Identifiants incorrects.";
+          this.cdr.detectChanges(); // Force la détection de changement pour afficher le message d'erreur immédiatement
         }
       });
     } else {

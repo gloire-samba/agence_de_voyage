@@ -14,6 +14,8 @@ import { AdminUtilisateursComponent } from './components/admin-utilisateurs/admi
 import { AdminUtilisateurReservationsComponent } from './components/admin-utilisateur-reservations/admin-utilisateur-reservations.component';
 import { AdminUtilisateurFormComponent } from './components/admin-utilisateur-form/admin-utilisateur-form.component';
 import { AdminVoyageAvisComponent } from './components/admin-voyage-avis/admin-voyage-avis.component';
+import { AdminRecherchePlaceComponent } from './components/admin-recherche-place/admin-recherche-place.component';
+import { PasswordResetComponent } from './components/password-reset/password-reset.component';
 
 
 export const routes: Routes = [
@@ -26,6 +28,8 @@ export const routes: Routes = [
   { path: 'historique', component: HistoriqueComponent, canActivate: [authGuard] },
   { path: 'profil', component: ProfilComponent, canActivate: [authGuard] },
   { path: 'paiement/:reservationId/:prix', component: PaiementComponent, canActivate: [authGuard] },
+  // 👉 NOUVELLE ROUTE POUR LE MOT DE PASSE OUBLIÉ (Accessible sans être connecté)
+  { path: 'password-reset', component: PasswordResetComponent },
   
   { 
     path: 'admin', 
@@ -40,7 +44,9 @@ export const routes: Routes = [
       { path: 'voyages/:id/avis', component: AdminVoyageAvisComponent },
       { path: 'utilisateurs/:id/modifier', component: AdminUtilisateurFormComponent },
       // 👉 NOUVELLE ROUTE DE L'ÉTAPE D
-      { path: 'utilisateurs/:id/reservations', component: AdminUtilisateurReservationsComponent }
+      { path: 'utilisateurs/:id/reservations', component: AdminUtilisateurReservationsComponent },
+      // 👉 NOUVELLE ROUTE : Recherche de passager par siège
+      { path: 'recherche-place', component: AdminRecherchePlaceComponent }
     ]
   },
   

@@ -43,6 +43,9 @@ class CriteresExtraits(BaseModel):
     escales_min: Optional[int] = None
     escales_max: Optional[int] = None
     statut: Optional[str] = None  # 👈 C'EST CETTE LIGNE QUI MANQUAIT !
+    # 👉 NOUVEAU : On apprend à l'IA à chercher ces données
+    places_total: Optional[int] = None
+    places_restantes_min: Optional[int] = None
 
 # --- GESTIONNAIRE D'ERREURS HUMAINE ---
 def gerer_erreur_gemini(e: Exception):
@@ -111,12 +114,13 @@ async def analyser_demande(requete: RequeteUtilisateur):
     
     Tu dois extraire les informations pour remplir strictement cette structure JSON.
     Règles absolues :
-    - "ville_depart" / "ville_arrivee" : Chaîne de caractères ou null.
+    - "ville_depart" / "ville_arrivee" : Chaîne ou null.
     - "prix_min" / "prix_max" : Nombres entiers.
-    - "date_debut" / "date_fin" : Dates au format "YYYY-MM-DD". L'utilisateur parle de l'année en cours qui est {annee_actuelle}. null si non précisé.
+    - "date_debut" / "date_fin" : Dates "YYYY-MM-DD" (année {annee_actuelle}).
     - "escales_min" / "escales_max" : Nombres entiers.
-    - "statut" : Chaîne EXACTE parmi "A_VENIR", "EN_COURS", "TERMINE" ou "ANNULE". 
-      IMPORTANT : Si l'utilisateur dit "en cours" -> "EN_COURS". S'il dit "terminé" ou "passé" -> "TERMINE". S'il dit "annulé" -> "ANNULE". Sinon, mets null.
+    - "statut" : "A_VENIR", "EN_COURS", "TERMINE", "ANNULE" ou null.
+    - "places_total" : Si l'utilisateur demande un avion/voyage d'une taille précise (ex: "un avion de 40 places"), mets ce nombre entier. Sinon null.
+    - "places_restantes_min" : Si l'utilisateur demande des places libres (ex: "pour 4 personnes", "au moins 2 places", "je veux réserver 3 places"), mets ce nombre entier. Sinon null.
     
     Ne renvoie ABSOLUMENT RIEN d'autre que le JSON valide.
     """

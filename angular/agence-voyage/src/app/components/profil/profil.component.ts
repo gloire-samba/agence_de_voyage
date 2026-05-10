@@ -14,12 +14,18 @@ import { AuthService } from '../../services/auth.service';
 export class ProfilComponent implements OnInit {
   private http = inject(HttpClient);
   public authService = inject(AuthService);
-  private cdr = inject(ChangeDetectorRef); // 👉 Le marteau pour forcer l'affichage
+  private cdr = inject(ChangeDetectorRef);
 
   idActuel = this.authService.getUserId();
   monProfil: any = { email: '', motDePasse: '' };
   message: string = '';
   isLoading: boolean = true;
+  
+  // 👉 NOUVEAU : Gestion du petit oeil
+  hidePassword = true; 
+  togglePasswordVisibility() {
+    this.hidePassword = !this.hidePassword;
+  }
 
   ngOnInit() {
     this.chargerMonProfil();
@@ -37,7 +43,7 @@ export class ProfilComponent implements OnInit {
       next: (data) => {
         this.monProfil = { email: data.email, motDePasse: '' };
         this.isLoading = false;
-        this.cdr.detectChanges(); // Force la disparition du "Chargement..."
+        this.cdr.detectChanges(); 
       },
       error: (err) => {
         this.message = "❌ Impossible de charger vos informations.";
@@ -51,18 +57,16 @@ export class ProfilComponent implements OnInit {
     this.isLoading = true;
     this.message = '';
     
-    // On n'envoie que ce qui a été modifié pour éviter l'erreur 400 (Bad Request)
     const payload: any = { email: this.monProfil.email };
     if (this.monProfil.motDePasse && this.monProfil.motDePasse.trim() !== '') {
        payload.motDePasse = this.monProfil.motDePasse;
     }
 
-    // 👉 On utilise PATCH au lieu de PUT !
     this.http.patch(this.getUrl(), payload).subscribe({
       next: () => {
         this.message = "✅ Profil mis à jour !";
         this.isLoading = false;
-        this.monProfil.motDePasse = ''; // On vide le champ par sécurité
+        this.monProfil.motDePasse = ''; 
         this.cdr.detectChanges();
       },
       error: (err) => {

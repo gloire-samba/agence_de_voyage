@@ -5,7 +5,6 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { loadStripe, Stripe, StripeElements } from '@stripe/stripe-js'; 
 
 import { ServeurService } from '../../services/serveur.service';
-// 👉 NOUVEAU : Import du service de réservation
 import { ReservationService } from '../../services/reservation.service';
 import { environment } from '../../../environments/environment.development';
 
@@ -22,7 +21,6 @@ export class PaiementComponent implements OnInit {
 
   private http = inject(HttpClient);
   private serveurService = inject(ServeurService);
-  // 👉 NOUVEAU : Injection du service
   private reservationService = inject(ReservationService);
   private cdr = inject(ChangeDetectorRef);
   private route = inject(ActivatedRoute);
@@ -101,8 +99,8 @@ export class PaiementComponent implements OnInit {
       this.message = "✅ Paiement Stripe validé ! Mise à jour de votre billet...";
       this.cdr.detectChanges();
 
-      // 👉 NOUVEAU : On informe Spring/Django que le paiement est OK pour passer en CONFIRME
-      this.reservationService.confirmerPaiement(this.reservationId).subscribe({
+      // 👉 LA MAGIE EST ICI : On envoie le "paymentIntent.id" (le reçu Stripe) au backend !
+      this.reservationService.confirmerPaiement(this.reservationId, paymentIntent.id).subscribe({
         next: () => {
           this.isLoading = false;
           this.message = "✅ Billet confirmé ! Bon voyage !";

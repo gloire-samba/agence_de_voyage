@@ -1,6 +1,6 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import AuthAPIView, GithubCallbackView, GithubLoginView, GoogleCallbackView, GoogleLoginView, RegisterAPIView, UtilisateurViewSet, VoyageViewSet, SegmentViewSet, AvisViewSet, ReservationViewSet
+from .views import AuthAPIView, BilletViewSet, CheckEmailView, GithubCallbackView, GithubLoginView, GoogleCallbackView, GoogleLoginView, RegisterAPIView, ResetPasswordView, UtilisateurViewSet, VoyageViewSet, SegmentViewSet, AvisViewSet, ReservationViewSet
 from . import views
 
 # Le router gère automatiquement les URLs pour les ViewSets
@@ -10,6 +10,7 @@ router.register(r'voyages', VoyageViewSet, basename='voyage')
 router.register(r'segments', SegmentViewSet, basename='segment')
 router.register(r'avis', AvisViewSet, basename='avis')
 router.register(r'reservations', ReservationViewSet, basename='reservation')
+router.register(r'billets', BilletViewSet, basename='billet') # 👉 AJOUT ICI
 
 urlpatterns = [
     # Toutes les routes CRUD sont maintenant accessibles sous /api/
@@ -26,6 +27,9 @@ urlpatterns = [
     
     path('api/auth/github/login/', GithubLoginView.as_view()),
     path('accounts/github/login/callback/', GithubCallbackView.as_view()),
+    
+    path('api/auth/check-email/', CheckEmailView.as_view()),
+    path('api/auth/reset-password/', ResetPasswordView.as_view()),
     
     path('api/', include(router.urls)),
 ]

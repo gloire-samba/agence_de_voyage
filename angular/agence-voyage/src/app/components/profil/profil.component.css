@@ -9,3 +9,8 @@
 .btn-save:disabled { background-color: #94a3b8; cursor: not-allowed; }
 .alert { padding: 10px; border-radius: 6px; margin-bottom: 20px; background-color: #fee2e2; color: #ef4444; }
 .alert.success { background-color: #dcfce3; color: #10b981; }
+/* Le CSS du petit œil ! */
+.password-wrapper { position: relative; display: flex; align-items: center; }
+.password-wrapper input { padding-right: 40px; }
+.btn-eye { position: absolute; right: 10px; background: none; border: none; font-size: 1.2rem; cursor: pointer; padding: 0; outline: none; }
+.btn-eye:hover { transform: scale(1.1); }

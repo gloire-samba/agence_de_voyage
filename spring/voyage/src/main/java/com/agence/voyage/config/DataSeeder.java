@@ -3,6 +3,8 @@ package com.agence.voyage.config;
 import com.agence.voyage.entity.*;
 import com.agence.voyage.service.*;
 import com.agence.voyage.repository.ReservationRepository;
+import com.agence.voyage.repository.VoyageRepository;
+import com.agence.voyage.repository.UtilisateurRepository;
 import com.github.javafaker.Faker;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
@@ -13,7 +15,6 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import com.agence.voyage.repository.UtilisateurRepository;
 
 @Component
 @RequiredArgsConstructor
@@ -24,12 +25,13 @@ public class DataSeeder implements CommandLineRunner {
     private final SegmentService segmentService;
     private final AvisService avisService;
     private final ReservationRepository reservationRepository; 
+    private final VoyageRepository voyageRepository; 
     private final UtilisateurRepository utilisateurRepository;  
 
     @Override
     public void run(String... args) {
 
-        // Création de l'admin sans forcer l'ID
+        // 1. Création de l'admin
         if (utilisateurRepository.findByEmail("admin@voyage.com").isEmpty()) {
             Utilisateur admin = new Utilisateur();
             admin.setEmail("admin@voyage.com");
@@ -39,75 +41,60 @@ public class DataSeeder implements CommandLineRunner {
             System.out.println("✅ Admin créé (admin@voyage.com / admin123)");
         }
 
-        // On s'arrête seulement s'il y a plus d'un utilisateur (l'admin + d'autres)
         if (utilisateurRepository.count() > 1) {
             System.out.println("✅ Base de données déjà peuplée.");
             return;
         }
 
-        System.out.println("⏳ Génération des fausses données en cours...");
+        System.out.println("⏳ Génération massive des fausses données en cours...");
         Faker faker = new Faker(new Locale("fr"));
         
+        // 2. Création de 300 Utilisateurs (La foule !)
         List<Utilisateur> utilisateurs = new ArrayList<>();
-        List<Voyage> voyagesGeneres = new ArrayList<>();
-
-        for (int i = 0; i < 10; i++) {
+        for (int i = 0; i < 300; i++) {
+            // 👉 L'astuce mathématique pour éviter la boucle infinie !
+            String emailUnique = "client" + i + "_" + faker.internet().emailAddress();
             Utilisateur u = Utilisateur.builder()
-                    .email(faker.internet().emailAddress())
+                    .email(emailUnique)
                     .motDePasse("password123")
                     .role("ROLE_USER")
                     .build();
             utilisateurs.add(utilisateurService.creer(u));
         }
 
-        // 2. Création de 100 Voyages avec répartition intelligente
+        // 3. Création de 100 Voyages
         for (int i = 0; i < 100; i++) {
             String villeDepart = faker.address().cityName();
             String villeArrivee = faker.address().cityName();
             
-            // 👉 NOUVELLE RÉPARTITION (50 / 30 / 15 / 5)
-            String cibleStatut;
-            if (i < 50) {
-                cibleStatut = "A_VENIR";
-            } else if (i < 80) {
-                cibleStatut = "EN_COURS";
-            } else if (i < 95) {
-                cibleStatut = "TERMINE";
-            } else {
-                cibleStatut = "ANNULE";
-            }
+            // Répartition des statuts
+            String cibleStatut = (i < 50) ? "A_VENIR" : (i < 80) ? "EN_COURS" : (i < 95) ? "TERMINE" : "ANNULE";
             
+            int capaciteVehicule = faker.number().numberBetween(20, 600);
+            BigDecimal prixBilletUnitaire = BigDecimal.valueOf(faker.number().randomDouble(2, 50, 800));
+
             Voyage v = Voyage.builder()
                     .villeDepart(villeDepart)
                     .villeArrivee(villeArrivee)
-                    .prixTotal(BigDecimal.valueOf(faker.number().randomDouble(2, 100, 1500)))
+                    .prixTotal(prixBilletUnitaire)
+                    .nombrePlacesTotal(capaciteVehicule) 
                     .statut(cibleStatut) 
                     .build();
             Voyage voyageSauvegarde = voyageService.creer(v);
-            voyagesGeneres.add(voyageSauvegarde);
 
+            // --- Création des Segments ---
             int nbSegments = faker.number().numberBetween(1, 4);
             LocalDateTime dateDepartPrecedente;
 
             if (cibleStatut.equals("TERMINE")) {
-                // Dans le passé, avec heure et minute aléatoires
-                dateDepartPrecedente = LocalDateTime.now()
-                        .minusDays(faker.number().numberBetween(5, 60))
-                        .withHour(faker.number().numberBetween(0, 23))
-                        .withMinute(faker.number().numberBetween(0, 59));
+                dateDepartPrecedente = LocalDateTime.now().minusDays(faker.number().numberBetween(5, 60));
             } else if (cibleStatut.equals("EN_COURS")) {
-                // Doit rester calculé en heures par rapport à l'instant présent
                 dateDepartPrecedente = LocalDateTime.now().minusHours(faker.number().numberBetween(1, 5));
             } else {
-                // A_VENIR ou ANNULE : Dans le futur, avec heure et minute aléatoires
-                dateDepartPrecedente = LocalDateTime.now()
-                        .plusDays(faker.number().numberBetween(1, 60))
-                        .withHour(faker.number().numberBetween(0, 23))
-                        .withMinute(faker.number().numberBetween(0, 59));
+                dateDepartPrecedente = LocalDateTime.now().plusDays(faker.number().numberBetween(1, 60));
             }
 
             String villeDepartSegment = villeDepart;
-
             for (int j = 1; j <= nbSegments; j++) {
                 String villeArriveeSegment = (j == nbSegments) ? villeArrivee : faker.address().cityName();
                 LocalDateTime dateArrivee = dateDepartPrecedente.plusHours(faker.number().numberBetween(2, 12));
@@ -126,41 +113,73 @@ public class DataSeeder implements CommandLineRunner {
                 dateDepartPrecedente = dateArrivee.plusHours(faker.number().numberBetween(1, 5));
             }
 
-            int nbAvis = faker.number().numberBetween(0, 6);
-            for (int k = 0; k < nbAvis; k++) {
-                Utilisateur auteurRandom = utilisateurs.get(faker.number().numberBetween(0, utilisateurs.size()));
-                Avis a = Avis.builder()
+            // --- REMPLISSAGE INTELLIGENT ---
+            boolean doitEtreComplet = (i < 10 && !cibleStatut.equals("ANNULE"));
+            int nbPlacesACreer;
+            
+            if (doitEtreComplet) {
+                nbPlacesACreer = capaciteVehicule;
+            } else {
+                double tauxRemplissage = faker.number().numberBetween(10, 80) / 100.0;
+                nbPlacesACreer = (int) (capaciteVehicule * tauxRemplissage);
+            }
+
+            int placesDejaAssignees = 0;
+
+            while (placesDejaAssignees < nbPlacesACreer) {
+                Utilisateur clientRandom = utilisateurs.get(faker.number().numberBetween(0, utilisateurs.size()));
+                
+                int nbPlacesDemande = faker.number().numberBetween(1, 6);
+                
+                if (placesDejaAssignees + nbPlacesDemande > nbPlacesACreer) {
+                    nbPlacesDemande = nbPlacesACreer - placesDejaAssignees;
+                }
+
+                int randStatut = faker.number().numberBetween(0, 10);
+                String statutRes = (randStatut < 7) ? "CONFIRME" : (randStatut < 9) ? "EN_ATTENTE" : "ANNULE";
+                LocalDateTime dateConf = statutRes.equals("CONFIRME") ? LocalDateTime.now().minusDays(faker.number().numberBetween(1, 20)) : null;
+
+                Reservation r = Reservation.builder()
+                        .utilisateur(clientRandom)
                         .voyage(voyageSauvegarde)
-                        .utilisateur(auteurRandom)
-                        .note(faker.number().numberBetween(1, 6))
-                        .commentaire(faker.lorem().sentence(10))
+                        .prixPaye(prixBilletUnitaire.multiply(new BigDecimal(nbPlacesDemande)))
+                        .statut(statutRes)
+                        .dateConfirmation(dateConf)
                         .build();
-                avisService.creer(a);
+
+                List<Billet> billets = new ArrayList<>();
+                for (int b = 0; b < nbPlacesDemande; b++) {
+                    int row = (placesDejaAssignees / 6) + 1;
+                    char col = "ABCDEF".charAt(placesDejaAssignees % 6);
+                    
+                    Billet billet = new Billet();
+                    billet.setSiege(row + String.valueOf(col));
+                    billet.setReservation(r);
+                    billets.add(billet);
+                    
+                    placesDejaAssignees++;
+                }
+                r.setBillets(billets);
+                reservationRepository.save(r); 
+
+                // 👉 CORRECTION : L'avis est créé peu importe le statut du voyage !
+                if (statutRes.equals("CONFIRME") && faker.bool().bool()) {
+                    Avis a = Avis.builder()
+                            .voyage(voyageSauvegarde)
+                            .utilisateur(clientRandom)
+                            .note(faker.number().numberBetween(3, 6)) 
+                            .commentaire(faker.lorem().sentence(12))
+                            .build();
+                    avisService.creer(a);
+                }
+            }
+
+            if (placesDejaAssignees == capaciteVehicule) {
+                voyageSauvegarde.setStatut("COMPLET");
+                voyageRepository.save(voyageSauvegarde);
             }
         }
 
-        for (int i = 0; i < 15; i++) {
-            Voyage voyageRandom = voyagesGeneres.get(faker.number().numberBetween(0, voyagesGeneres.size()));
-            Utilisateur utilisateurRandom = utilisateurs.get(faker.number().numberBetween(0, utilisateurs.size()));
-            
-            int choixStatut = faker.number().numberBetween(0, 3);
-            String statut = (choixStatut == 0) ? "EN_ATTENTE" : (choixStatut == 1) ? "ANNULE" : "CONFIRME";
-            
-            LocalDateTime dateConf = statut.equals("CONFIRME") 
-                ? LocalDateTime.now().minusDays(faker.number().numberBetween(1, 30)) 
-                : null;
-
-            Reservation r = Reservation.builder()
-                    .utilisateur(utilisateurRandom)
-                    .voyage(voyageRandom)
-                    .prixPaye(voyageRandom.getPrixTotal())
-                    .statut(statut)
-                    .dateConfirmation(dateConf)
-                    .build();
-            
-            reservationRepository.save(r);
-        }
-
-        System.out.println("🚀 Génération terminée avec succès !");
+        System.out.println("🚀 Génération massive terminée avec succès !");
     }
 }

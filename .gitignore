@@ -24,3 +24,5 @@ testdb.mv.db
 # IA
 IA/.env
 django/.env
+
+spring/voyage/data

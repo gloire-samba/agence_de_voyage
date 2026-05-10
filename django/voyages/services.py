@@ -2,8 +2,16 @@ import datetime
 from django.utils import timezone
 from django.db import transaction
 from django.db.models import Avg, Count
-from .models import Reservation, Utilisateur, Voyage, Segment, Avis
+from django.core.mail import EmailMessage, send_mail
+from django.conf import settings
+from .models import Billet, Reservation, Utilisateur, Voyage, Segment, Avis
 import requests
+import stripe
+import os
+import math
+from django.db.models import Avg, Count, Q, F
+from io import BytesIO
+from reportlab.pdfgen import canvas
 
 class UtilisateurService:
     @staticmethod
@@ -53,9 +61,35 @@ class VoyageService:
         return Voyage.objects.create(**data)
 
     @staticmethod
+    @transaction.atomic
     def modifier(pk, data):
-        Voyage.objects.filter(id=pk).update(**data)
-        return Voyage.objects.get(id=pk)
+        voyage = Voyage.objects.get(id=pk)
+        
+        # 👉 DÉTECTION DE L'ANNULATION PAR L'ADMIN
+        passage_en_annule = data.get('statut') == 'ANNULE' and voyage.statut != 'ANNULE'
+
+        # Mise à jour classique des données du voyage
+        for key, value in data.items():
+            setattr(voyage, key, value)
+        voyage.save()
+
+        # 👉 LA BOUCLE MAGIQUE DE REMBOURSEMENT MASSIF
+        if passage_en_annule:
+            print(f"⚠️ Voyage #{pk} annulé par l'admin. Déclenchement du remboursement de masse...")
+            
+            # 1. On récupère toutes les réservations liées à ce voyage (qui ne sont pas déjà annulées)
+            reservations = Reservation.objects.filter(voyage_id=pk).exclude(statut='ANNULE')
+            
+            for res in reservations:
+                try:
+                    # 2. On appelle notre méthode de réservation qui gère Stripe + Email !
+                    ReservationService.annuler(res.id)
+                    if res.utilisateur and res.utilisateur.email:
+                        print(f"✅ Client {res.utilisateur.email} remboursé.")
+                except Exception as e:
+                    print(f"❌ Échec remboursement automatique pour réservation #{res.id}: {e}")
+
+        return voyage
 
     @staticmethod
     def supprimer(pk):
@@ -109,36 +143,168 @@ class AvisService:
         voyage.save()
         
 class ReservationService:
+    ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+
     @staticmethod
     def get_historique_utilisateur(utilisateur_id):
         return Reservation.objects.filter(utilisateur_id=utilisateur_id).order_by('-date_confirmation')
 
     @staticmethod
-    def creer(data):
-        data['statut'] = 'EN_ATTENTE'
-        return Reservation.objects.create(**data)
+    @transaction.atomic
+    def creer(voyage_id, utilisateur, nb_places_demandees):
+        voyage = Voyage.objects.get(id=voyage_id)
+        
+        # 1. Vérification des places
+        places_occupees = Billet.objects.filter(reservation__voyage=voyage).exclude(reservation__statut='ANNULE').count()
+        places_restantes = voyage.nombre_places_total - places_occupees
+
+        if nb_places_demandees > places_restantes:
+            raise Exception(f"Réservation impossible : Il ne reste que {places_restantes} places.")
+
+        # 2. Prix et attribution
+        prix_total = voyage.prix_total * nb_places_demandees
+        sieges_attribues = ReservationService.trouver_prochaines_places_libres(voyage, nb_places_demandees)
+
+        # 3. Création
+        res = Reservation.objects.create(
+            voyage=voyage,
+            utilisateur=utilisateur,
+            prix_paye=prix_total,
+            statut='EN_ATTENTE'
+        )
+
+        for siege in sieges_attribues:
+            Billet.objects.create(siege=siege, reservation=res)
+
+        if places_occupees + nb_places_demandees >= voyage.nombre_places_total:
+            voyage.statut = 'COMPLET'
+            voyage.save()
+
+        return res
+
+    @staticmethod
+    def trouver_prochaines_places_libres(voyage, nb_places_demandees):
+        sieges_pris = set(Billet.objects.filter(reservation__voyage=voyage).exclude(reservation__statut='ANNULE').values_list('siege', flat=True))
+        plan_cabine = ReservationService.generer_plan_de_cabine(voyage.nombre_places_total)
+
+        selection = []
+        for siege in plan_cabine:
+            if siege not in sieges_pris:
+                selection.append(siege)
+                if len(selection) == nb_places_demandees:
+                    return selection
+        raise Exception("Erreur critique : Impossible de trouver assez de sièges libres.")
+
+    @staticmethod
+    def generer_plan_de_cabine(capacite):
+        sieges = []
+        nb_colonnes = max(6, math.ceil(capacite / 99.0))
+        siege_crees = 0
+        rangee = 1
+        
+        while siege_crees < capacite:
+            for c in range(nb_colonnes):
+                if siege_crees >= capacite:
+                    break
+                sieges.append(f"{rangee}{ReservationService.ALPHABET[c]}")
+                siege_crees += 1
+            rangee += 1
+        return sieges
 
     @staticmethod
     @transaction.atomic
-    def confirmer_paiement(pk):
+    def confirmer_paiement(pk, stripe_payment_id):
         reservation = Reservation.objects.get(id=pk)
-        reservation.date_confirmation = timezone.now()
         reservation.statut = 'CONFIRME'
+        reservation.stripe_payment_id = stripe_payment_id
+        reservation.date_confirmation = timezone.now()
         reservation.save()
-        print(f"📧 Mail de confirmation envoyé pour le voyage vers {reservation.voyage.ville_arrivee}")
-        return reservation
 
+        # On récupère les sièges sous forme de texte ("1A, 1B")
+        places = ", ".join([b.siege for b in reservation.billets.all()])
+
+        # 👉 1. GÉNÉRATION DU PDF EN MÉMOIRE (Sans le sauvegarder sur le disque)
+        buffer = BytesIO()
+        p = canvas.Canvas(buffer)
+        
+        # Design basique du billet
+        p.setFont("Helvetica-Bold", 18)
+        p.drawString(180, 800, "CARTE D'EMBARQUEMENT")
+        p.setFont("Helvetica", 12)
+        p.drawString(100, 750, f"N° de Commande : #{reservation.id}")
+        p.drawString(100, 730, f"Passager : {reservation.utilisateur.email}")
+        p.drawString(100, 710, f"Trajet : {reservation.voyage.ville_depart} ➔ {reservation.voyage.ville_arrivee}")
+        p.drawString(100, 690, f"Siège(s) assigné(s) : {places}")
+        p.drawString(100, 670, f"Montant réglé : {reservation.prix_paye} EUR")
+        p.drawString(100, 600, "Merci de voyager avec nous. Bon voyage !")
+        
+        p.showPage()
+        p.save()
+        pdf_bytes = buffer.getvalue() # On récupère le fichier brut
+        buffer.close()
+
+        # 👉 2. CRÉATION DU MAIL AVEC PIÈCE JOINTE
+        sujet = f"Confirmation de votre réservation - Vol {reservation.voyage.ville_depart} ➔ {reservation.voyage.ville_arrivee}"
+        texte_mail = (
+            f"Bonjour,\n\n"
+            f"Votre paiement a été validé. Votre réservation est CONFIRMÉE.\n"
+            f"Vos places attribuées : {places}\n"
+            f"Montant total payé : {reservation.prix_paye} €\n\n"
+            f"👉 Vous trouverez en pièce jointe votre billet d'embarquement au format PDF.\n\n"
+            f"Bon voyage !"
+        )
+
+        try:
+            # On utilise EmailMessage (plus puissant que send_mail) pour attacher un fichier
+            email = EmailMessage(
+                sujet,
+                texte_mail,
+                settings.EMAIL_HOST_USER,
+                [reservation.utilisateur.email]
+            )
+            email.attach(f'Billet_Voyage_{reservation.id}.pdf', pdf_bytes, 'application/pdf')
+            email.send(fail_silently=True)
+            print("✅ Mail avec PDF envoyé avec succès.")
+        except Exception as e:
+            print(f"❌ Erreur d'envoi du mail : {e}")
+
+        return reservation
+    
     @staticmethod
     def supprimer(pk):
         Reservation.objects.filter(id=pk).delete()
         
     @staticmethod
+    @transaction.atomic
     def annuler(pk):
         reservation = Reservation.objects.get(id=pk)
         reservation.statut = 'ANNULE'
-        reservation.save()
-        return reservation
         
+        voyage = reservation.voyage
+        if voyage.statut == 'COMPLET':
+            voyage.statut = 'A_VENIR'
+            voyage.save()
+
+        if reservation.stripe_payment_id:
+            try:
+                stripe.api_key = os.getenv('STRIPE_SECRET_KEY')
+                remboursement = stripe.Refund.create(payment_intent=reservation.stripe_payment_id)
+            except Exception as e:
+                pass
+
+        reservation.save()
+
+        if reservation.utilisateur and reservation.utilisateur.email:
+            sujet = f"🚫 Annulation de votre réservation #{reservation.id}"
+            contenu = f"Bonjour,\n\nVotre réservation a été ANNULÉE.\nUn remboursement total de {reservation.prix_paye}€ a été déclenché vers votre banque.\nÀ bientôt."
+            try:
+                send_mail(sujet, contenu, settings.EMAIL_HOST_USER, [reservation.utilisateur.email], fail_silently=False)
+            except Exception as e:
+                pass
+
+        return reservation
+    
+            
 class RechercheIntelligenteService:
     IA_API_URL = "http://127.0.0.1:8001/api/ia/analyser"
 
@@ -167,15 +333,19 @@ class RechercheIntelligenteService:
         except requests.exceptions.RequestException as e:
             print(f"⚠️ L'IA est injoignable ou trop lente. Fallback activé !")
             return Voyage.objects.all()
-        
-        # 👉 CORRECTION 1 : Suppression de l'exception qui bloquait les dates passées
 
-        resultats = Voyage.objects.annotate(nb_segments_total=Count('segments', distinct=True))
+        # 👉 1. ON ANNOTE : On calcule le nombre d'escales ET le nombre de places occupées
+        resultats = Voyage.objects.annotate(
+            nb_segments_total=Count('segments', distinct=True),
+            places_occupees=Count(
+                'reservations__billets',
+                filter=~Q(reservations__statut='ANNULE'), # On ignore les billets annulés
+                distinct=True
+            )
+        )
 
-        # 👉 CORRECTION 2 : Filtrer le 1er segment
         resultats = resultats.filter(segments__ordre=1)
         
-        # 👉 CORRECTION 3 : N'exiger un départ dans le futur QUE si aucun statut n'est précisé par l'IA
         if not criteres.get('statut'):
             resultats = resultats.filter(segments__heure_depart__gte=timezone.now())
 
@@ -199,12 +369,22 @@ class RechercheIntelligenteService:
 
         if criteres.get('escales_min') is not None:
             resultats = resultats.filter(nb_segments_total__gte=criteres['escales_min'] + 1)
+            
         if criteres.get('escales_max') is not None:
             resultats = resultats.filter(nb_segments_total__lte=criteres['escales_max'] + 1)
 
-        # 👉 CORRECTION 4 : Ajout du filtre par statut
         if criteres.get('statut'):
             resultats = resultats.filter(statut__iexact=criteres['statut'])
+
+        # 👉 2. RECHERCHE PAR TAILLE EXACTE DU VÉHICULE
+        if criteres.get('places_total') is not None:
+            resultats = resultats.filter(nombre_places_total=criteres['places_total'])
+
+        # 👉 3. LA SOUSTRACTION MAGIQUE (Places restantes)
+        if criteres.get('places_restantes_min') is not None:
+            resultats = resultats.annotate(
+                places_restantes=F('nombre_places_total') - F('places_occupees')
+            ).filter(places_restantes__gte=criteres['places_restantes_min'])
 
         return resultats.distinct()
     
@@ -226,3 +406,25 @@ class RechercheIntelligenteService:
         except Exception as e:
             print(f"❌ Erreur transcription : {e}")
             return ""
+        
+class BilletService:
+    @staticmethod
+    def lister_tous():
+        return Billet.objects.all()
+
+    @staticmethod
+    def lister_par_utilisateur(utilisateur_id):
+        # On remonte la chaîne : Billet -> Reservation -> Utilisateur
+        return Billet.objects.filter(reservation__utilisateur_id=utilisateur_id)
+
+    @staticmethod
+    def modifier(pk, data):
+        billet = Billet.objects.get(id=pk)
+        if 'siege' in data:
+            billet.siege = data['siege']
+            billet.save()
+        return billet
+
+    @staticmethod
+    def supprimer(pk):
+        Billet.objects.filter(id=pk).delete()

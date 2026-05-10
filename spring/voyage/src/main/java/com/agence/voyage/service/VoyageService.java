@@ -1,7 +1,9 @@
 package com.agence.voyage.service;
 
 import com.agence.voyage.entity.Voyage;
+import com.agence.voyage.entity.Reservation;
 import com.agence.voyage.repository.VoyageRepository;
+import com.agence.voyage.repository.ReservationRepository;
 import lombok.RequiredArgsConstructor;
 import com.agence.voyage.entity.Segment;
 
@@ -19,6 +21,8 @@ import java.util.Comparator;
 public class VoyageService {
 
     private final VoyageRepository voyageRepository;
+    private final ReservationRepository reservationRepository; // 👉 Ajout pour trouver les passagers
+    private final ReservationService reservationService; // 👉 Ajout pour déclencher le remboursement
 
     // 👉 L'ALGORITHME QUI S'EXÉCUTE AU DÉMARRAGE DU SERVEUR
     @EventListener(ApplicationReadyEvent.class)
@@ -72,16 +76,47 @@ public class VoyageService {
     }
 
     // UPDATE
+    @Transactional // 👉 Important d'ajouter Transactional ici car on modifie plusieurs choses
     public Voyage modifier(Long id, Voyage voyageDetails) {
         Voyage voyage = recupererParId(id);
+
+        // 👉 DÉTECTION DE L'ANNULATION PAR L'ADMIN
+        boolean passageEnAnnule = voyageDetails.getStatut() != null 
+            && voyageDetails.getStatut().equals("ANNULE") 
+            && !voyage.getStatut().equals("ANNULE");
+
         voyage.setVilleDepart(voyageDetails.getVilleDepart());
         voyage.setVilleArrivee(voyageDetails.getVilleArrivee());
         voyage.setPrixTotal(voyageDetails.getPrixTotal());
+        
         if (voyageDetails.getStatut() != null) {
             voyage.setStatut(voyageDetails.getStatut());
         }
-        // Note: La note moyenne est gérée par le AvisService, on ne la modifie pas manuellement ici
-        return voyageRepository.save(voyage);
+
+        Voyage voyageSauvegarde = voyageRepository.save(voyage);
+
+        // 👉 LA BOUCLE MAGIQUE DE REMBOURSEMENT MASSIF
+        if (passageEnAnnule) {
+            System.out.println("⚠️ Voyage #" + id + " annulé par l'admin. Déclenchement du remboursement de masse...");
+            
+            // 1. On récupère tous les billets rattachés à ce voyage
+            List<Reservation> reservations = reservationRepository.findByVoyageId(id);
+            
+            for (Reservation res : reservations) {
+                // On ignore ceux qui sont déjà annulés
+                if (!res.getStatut().equals("ANNULE")) {
+                    try {
+                        // 2. On utilise notre méthode de réservation qui gère déjà Stripe + Email !
+                        reservationService.annuler(res.getId());
+                        System.out.println("✅ Client " + res.getUtilisateur().getEmail() + " remboursé.");
+                    } catch (Exception e) {
+                        System.err.println("❌ Échec remboursement automatique pour réservation #" + res.getId());
+                    }
+                }
+            }
+        }
+
+        return voyageSauvegarde;
     }
 
     // DELETE

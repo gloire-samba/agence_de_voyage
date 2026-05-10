@@ -55,28 +55,22 @@
             </div>
             
             <div class="info-ligne">
+              <span class="label">🎟️ Disponibilité :</span>
+              <span class="valeur badge-place" [class.dernieres-places]="getPlacesRestantes(voyage) <= 5">
+                {{ getPlacesRestantes(voyage) }} places restantes (sur {{ getCapaciteTotale(voyage) }})
+              </span>
+            </div>
+
+            <div class="info-ligne">
               <span class="label">✈️ Trajet :</span>
-              <!-- 👉 NOUVEAU : Transformé en bouton -->
-              <button class="valeur badge btn-badge" 
-                      [class.direct]="getNbEscales(voyage) === 0"
-                      (click)="ouvrirModal('SEGMENTS', voyage)"
-                      title="Voir les détails du trajet">
-                @if (getNbEscales(voyage) === 0) {
-                  Vol direct 👁️
-                } @else if (getNbEscales(voyage) === 1) {
-                  1 escale 👁️
-                } @else {
-                  {{ getNbEscales(voyage) }} escales 👁️
-                }
+              <button class="valeur badge btn-badge" [class.direct]="getNbEscales(voyage) === 0" (click)="ouvrirModal('SEGMENTS', voyage)" title="Voir les détails du trajet">
+                @if (getNbEscales(voyage) === 0) { Vol direct 👁️ } @else if (getNbEscales(voyage) === 1) { 1 escale 👁️ } @else { {{ getNbEscales(voyage) }} escales 👁️ }
               </button>
             </div>
 
             <div class="info-ligne">
               <span class="label">⭐ Avis :</span>
-              <!-- 👉 NOUVEAU : Transformé en bouton -->
-              <button class="valeur btn-badge-outline" 
-                      (click)="ouvrirModal('AVIS', voyage)"
-                      title="Lire les avis">
+              <button class="valeur btn-badge-outline" (click)="ouvrirModal('AVIS', voyage)" title="Lire les avis">
                 {{ getNoteMoyenne(voyage) }}/5 ({{ getNombreAvis(voyage) }} avis) 👁️
               </button>
             </div>
@@ -85,7 +79,7 @@
               <span class="label">📌 Statut :</span>
               <span class="valeur badge" 
                     [class.confirme]="getStatut(voyage) === 'A_VENIR'"
-                    [class.annule]="getStatut(voyage) === 'ANNULE' || getStatut(voyage) === 'TERMINE'">
+                    [class.annule]="getStatut(voyage) === 'ANNULE' || getStatut(voyage) === 'TERMINE' || getStatut(voyage) === 'COMPLET'">
                 {{ getStatut(voyage) }}
               </span>
             </div>
@@ -93,14 +87,24 @@
 
           <!-- Pied de la carte -->
           <div class="card-footer">
-            @if (getStatut(voyage) === 'ANNULE') {
+            @if (getStatut(voyage) === 'ANNULE' || getStatut(voyage) === 'COMPLET' || getPlacesRestantes(voyage) === 0) {
               <div class="btn-indisponible">
-                🚫 Voyage annulé - Réservation impossible
+                🚫 Vol {{ getStatut(voyage) }}
               </div>
             } @else {
-              <button class="btn-reserver" (click)="onReserver(voyage)">
-                Réserver ce vol
-              </button>
+              
+              <div class="reservation-actions">
+                <div class="compteur-places">
+                  <button (click)="decrementerPlace(voyage)" [disabled]="placesSelectionnees[voyage.id] <= 1">-</button>
+                  <span>{{ placesSelectionnees[voyage.id] }}</span>
+                  <button (click)="incrementerPlace(voyage)" [disabled]="placesSelectionnees[voyage.id] >= getPlacesRestantes(voyage)">+</button>
+                </div>
+                
+                <button class="btn-reserver" (click)="onReserver(voyage)">
+                  Réserver ({{ getPrix(voyage) * placesSelectionnees[voyage.id] | currency:'EUR':'symbol':'1.0-0' }})
+                </button>
+              </div>
+
             }
           </div>
 

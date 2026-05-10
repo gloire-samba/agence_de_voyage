@@ -1,0 +1,77 @@
+<div class="admin-recherche-container">
+  
+  <div class="header-admin">
+    <h2>🕵️ Contrôle des Passagers</h2>
+    <p>Recherchez à qui appartient un siège dans un vol spécifique.</p>
+  </div>
+
+  <div class="search-box">
+    
+    <div class="input-group">
+      <label>1. Sélectionner le Voyage</label>
+      <select [(ngModel)]="voyageIdSelectionne">
+        <option value="">-- Choisissez un vol --</option>
+        @for (voyage of voyages; track voyage.id) {
+          <option [value]="voyage.id">
+            Vol #{{ voyage.id }} : {{ getVilleDepart(voyage) }} ➔ {{ getVilleArrivee(voyage) }}
+          </option>
+        }
+      </select>
+    </div>
+
+    <div class="input-group">
+      <label>2. Numéro du Siège</label>
+      <input type="text" [(ngModel)]="siegeSaisi" placeholder="Ex: 12A" (keyup.enter)="lancerRecherche()" />
+    </div>
+
+    <button class="btn-rechercher" 
+            (click)="lancerRecherche()" 
+            [disabled]="!voyageIdSelectionne || !siegeSaisi || isLoading">
+      @if (isLoading) {
+        ⏳ Recherche...
+      } @else {
+        🔍 Rechercher
+      }
+    </button>
+  </div>
+
+  @if (erreurRecherche) {
+    <div class="alert-error">
+      {{ erreurRecherche }}
+    </div>
+  }
+
+  @if (resultatReservation) {
+    <div class="result-card">
+      <div class="result-header">
+        <span class="badge-success">Passager identifié</span>
+        <strong>Place : <span class="siege-highlight">{{ siegeSaisi | uppercase }}</span></strong>
+      </div>
+
+      <div class="result-body">
+        <div class="info-row">
+          <span class="label">Identité (Email) :</span>
+          <span class="valeur text-email">{{ getEmailUtilisateur(resultatReservation) }}</span>
+        </div>
+        
+        <div class="info-row">
+          <span class="label">Réservation rattachée :</span>
+          <span class="valeur">N° {{ resultatReservation.id }}</span>
+        </div>
+
+        <div class="info-row">
+          <span class="label">Statut du billet :</span>
+          <span class="valeur badge-statut" [class.annule]="resultatReservation.statut === 'ANNULE'">
+            {{ resultatReservation.statut }}
+          </span>
+        </div>
+
+        <div class="info-row">
+          <span class="label">Prix d'achat (Total) :</span>
+          <span class="valeur">{{ getPrixPaye(resultatReservation) | currency:'EUR':'symbol':'1.0-2' }}</span>
+        </div>
+      </div>
+    </div>
+  }
+
+</div>

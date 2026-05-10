@@ -186,24 +186,41 @@ export class RechercheComponent implements OnInit {
     });
   }
 
-  declencherReservation(voyage: Voyage) {
-    const prix = voyage.prixTotal || (voyage as any).prix_total;
+  // 👉 NOUVEAU : Réception de l'objet complexe { voyage, nbPlaces }
+  declencherReservation(event: { voyage: Voyage, nbPlaces: number }) {
+    const voyage = event.voyage;
+    const nbPlaces = event.nbPlaces;
+    
+    // Le vrai prix total (unitaire x places)
+    const prixUnitaire = voyage.prixTotal || (voyage as any).prix_total;
+    const prixTotalPaiement = prixUnitaire * nbPlaces; 
+    
     const userId = this.authService.getUserId();
     
     let nouvelleResa: any = {};
     if (this.serveurService.getBackend() === 'spring') {
-      nouvelleResa = { utilisateur: { id: userId }, voyage: { id: voyage.id }, prixPaye: prix, statut: 'EN_ATTENTE' };
+      nouvelleResa = { 
+        utilisateur: { id: userId }, 
+        voyage: { id: voyage.id }, 
+        nbPlacesDemandees: nbPlaces // 👉 Donnée envoyée au contrôleur Spring !
+      };
     } else {
-      nouvelleResa = { utilisateur_id: userId, voyage_id: voyage.id, prix_paye: prix, statut: 'EN_ATTENTE' };
+      nouvelleResa = { 
+        utilisateur_id: userId, 
+        voyage_id: voyage.id, 
+        nbPlacesDemandees: nbPlaces // 👉 Donnée envoyée au ViewSet Django !
+      };
     }
 
     this.reservationService.creerReservation(nouvelleResa).subscribe({
       next: (resa) => {
-        this.router.navigate(['/paiement', resa.id, prix]);
+        // On envoie le PRIX TOTAL MULTIPLIÉ au composant de paiement
+        this.router.navigate(['/paiement', resa.id, prixTotalPaiement]);
       },
       error: (err) => alert('Erreur : Impossible de créer la réservation en base de données.')
     });
   }
+
 
   // NOUVELLES METHODES DE NAVIGATION
   allerAuProfil() {
@@ -219,16 +236,17 @@ export class RechercheComponent implements OnInit {
     this.router.navigate(['/login']);
   }
 
-  // 👉 NOUVELLE MÉTHODE : La moulinette de filtrage intelligente
+  // 👉 LA MOULINETTE CORRIGÉE
   private appliquerFiltreRole(resultatsBruts: Voyage[]): Voyage[] {
     if (this.estAdmin) {
-      return resultatsBruts; // L'admin voit absolument tout
+      return resultatsBruts; // L'admin voit tout (COMPLET, ANNULE, etc.)
     }
     
-    // Le client normal ne voit que A_VENIR et ANNULE
+    // 👉 Un client normal ne voit que les vols "A_VENIR" qui ont de la place. 
+    // On cache les vols 'COMPLET' et 'ANNULE' pour ne pas le frustrer dans le catalogue !
     return resultatsBruts.filter(v => {
       const statut = v.statut || (v as any).statut || 'A_VENIR';
-      return statut === 'A_VENIR' || statut === 'ANNULE';
+      return statut === 'A_VENIR'; 
     });
   }
 }

@@ -93,7 +93,9 @@ public class IaClientService {
                 maxSegments,
                 criteres.getDateDebut(),
                 criteres.getDateFin(),
-                criteres.getStatut() 
+                criteres.getStatut(),
+                criteres.getPlacesTotal(), // NOUVEAU
+                criteres.getPlacesRestantesMin() // NOUVEAU 
         );
 
         if (resultats.isEmpty()) {
@@ -155,5 +157,12 @@ public class IaClientService {
 
         @JsonProperty("statut")
         private String statut;
+
+        // 👉 NOUVEAU
+        @JsonProperty("places_total")
+        private Integer placesTotal;
+        
+        @JsonProperty("places_restantes_min")
+        private Integer placesRestantesMin;
     }
 }

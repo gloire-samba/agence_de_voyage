@@ -32,20 +32,26 @@ export class ReservationService {
     return this.http.post<Reservation>(url, reservation);
   }
 
-  confirmerPaiement(reservationId: number): Observable<Reservation> {
-    const url = this.serveurService.getBackend() === 'spring'
-      ? `${this.baseUrl}/${reservationId}/confirmer`
-      : `${this.baseUrl}/${reservationId}/confirmer/`;
-    return this.http.post<Reservation>(url, {});
+  // On ajoute le paramètre stripePaymentId
+  confirmerPaiement(id: number, stripePaymentId: string): Observable<any> {
+    const backend = this.serveurService.getBackend();
+    const url = backend === 'spring' 
+      ? `${this.baseUrl}/${id}/confirmer`
+      : `${this.baseUrl}/${id}/confirmer/`;
+
+    // 👉 On envoie l'ID dans le corps de la requête (payload)
+    return this.http.post<any>(url, { stripePaymentId: stripePaymentId });
   }
 
-  annulerReservation(reservationId: number): Observable<Reservation> {
-    const url = this.serveurService.getBackend() === 'spring'
-      ? `${this.baseUrl}/${reservationId}/annuler`
-      : `${this.baseUrl}/${reservationId}/annuler/`;
-    
-    // On utilise POST au lieu de DELETE pour signifier un changement d'état métier
-    return this.http.post<Reservation>(url, {});
+  annulerReservation(id: number): Observable<any> {
+    const backend = this.serveurService.getBackend();
+    // Gère la différence de slash final entre Spring et Django
+    const url = backend === 'spring' 
+      ? `${this.baseUrl}/${id}/annuler`
+      : `${this.baseUrl}/${id}/annuler/`;
+
+    // C'est une action de modification d'état, on utilise POST (ou PUT selon ton choix d'architecture backend, mais nous avons configuré POST)
+    return this.http.post<any>(url, {});
   }
 
   modifierReservation(id: number, donnees: any): Observable<any> {

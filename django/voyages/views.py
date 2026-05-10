@@ -1,17 +1,21 @@
 from rest_framework import viewsets, status
-from .models import Reservation, Utilisateur, Voyage, Segment, Avis
-from .serializers import ReservationSerializer, UtilisateurSerializer, VoyageSerializer, SegmentSerializer, AvisSerializer
+from .models import Billet, Reservation, Utilisateur, Voyage, Segment, Avis
+from .serializers import BilletSerializer, ReservationSerializer, UtilisateurSerializer, VoyageSerializer, SegmentSerializer, AvisSerializer
 from .services import AvisService, RechercheIntelligenteService, ReservationService, UtilisateurService, VoyageService, SegmentService
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.decorators import action
-import stripe
-import os
-from dotenv import load_dotenv
-import stripe
 from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from .security import EstProprietaireProfilOuAdmin, JwtService, IsAdminRole, EstAuteurAvisOuAdmin
+
+# 👉 Nouveaux imports pour les e-mails
+from django.core.mail import send_mail
+from django.conf import settings
+
+import stripe
+import os
+from dotenv import load_dotenv
 import requests
 from django.shortcuts import redirect
 import uuid
@@ -25,9 +29,8 @@ class UtilisateurViewSet(viewsets.ModelViewSet):
     queryset = Utilisateur.objects.all().order_by('id')
     serializer_class = UtilisateurSerializer
     
-    
     def get_permissions(self):
-        return [EstProprietaireProfilOuAdmin()] # ✅ On applique la nouvelle règle
+        return [EstProprietaireProfilOuAdmin()]
 
 class VoyageViewSet(viewsets.ModelViewSet):
     queryset = Voyage.objects.all().order_by('id')
@@ -40,33 +43,27 @@ class SegmentViewSet(viewsets.ModelViewSet):
     def get_permissions(self):
         if self.request.method == 'GET':
             return [AllowAny()]
-        return [IsAdminRole()] # Seul l'admin peut modifier !
+        return [IsAdminRole()]
 
 class AvisViewSet(viewsets.ModelViewSet):
     queryset = Avis.objects.all().order_by('id')
     serializer_class = AvisSerializer
 
     def perform_create(self, serializer):
-        # On utilise le service pour gérer la logique métier (calcul de moyenne)
         AvisService.creer(serializer.validated_data)
 
     def perform_update(self, serializer):
-        # On utilise le service pour la mise à jour
         AvisService.modifier(self.get_object().id, serializer.validated_data)
 
     def perform_destroy(self, instance):
-        # On utilise le service pour la suppression et le recalcul
         AvisService.supprimer(instance.id)
         
-    # 👉 1. On applique la règle
     def get_permissions(self):
         return [EstAuteurAvisOuAdmin()]
     
-    # 👉 ON INTERCEPTE LA CRÉATION POUR TRADUIRE LA REQUÊTE D'ANGULAR
     def create(self, request, *args, **kwargs):
         data = request.data.copy()
         
-        # 1. Si Angular envoie 'reservationId', on trouve le voyage correspondant
         if 'reservationId' in data:
             try:
                 res = Reservation.objects.get(id=data['reservationId'])
@@ -74,7 +71,6 @@ class AvisViewSet(viewsets.ModelViewSet):
             except Reservation.DoesNotExist:
                 return Response({"error": "Réservation introuvable"}, status=status.HTTP_404_NOT_FOUND)
         
-        # 2. On injecte l'ID de l'utilisateur connecté pour satisfaire le Serializer
         data['utilisateur'] = request.user.id
         
         serializer = self.get_serializer(data=data)
@@ -84,7 +80,6 @@ class AvisViewSet(viewsets.ModelViewSet):
             
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    # 👉 2. On force l'utilisateur connecté comme auteur de l'avis
     def perform_create(self, serializer):
         serializer.save(utilisateur=self.request.user)
         
@@ -94,12 +89,6 @@ def recherche_intelligente(request):
     voyages = RechercheIntelligenteService.chercher_voyage(texte)
     serializer = VoyageSerializer(voyages, many=True)
     return Response(serializer.data)
-
-@api_view(['POST'])
-def recherche_intelligente(request):
-    texte = request.data.get('texte', '')
-    voyages = RechercheIntelligenteService.chercher_voyage(texte)
-    return Response(VoyageSerializer(voyages, many=True).data)
 
 @api_view(['POST'])
 def recherche_vocale(request):
@@ -116,40 +105,31 @@ def recherche_vocale(request):
             "resultats": VoyageSerializer(voyages, many=True).data
         })
     except Exception as e:
-        # On renvoie l'erreur proprement au client (Angular/Postman) avec un code 503
         return Response({"erreur": str(e)}, status=503)
     
 class ReservationViewSet(viewsets.ModelViewSet):
     queryset = Reservation.objects.all()
     serializer_class = ReservationSerializer
 
-    # Surcharge de la méthode POST de base (Création)
-    def create(self, request, *args, **kwargs):
-        reservation = ReservationService.creer(request.data)
-        return Response(ReservationSerializer(reservation).data, status=status.HTTP_201_CREATED)
-
-    # Surcharge de la méthode DELETE de base
     def destroy(self, request, *args, **kwargs):
         ReservationService.supprimer(kwargs.get('pk'))
         return Response(status=status.HTTP_204_NO_CONTENT)
 
-    # Route Personnalisée 1 : GET /api/reservations/utilisateur/{id}/
     @action(detail=False, methods=['get'], url_path=r'utilisateur/(?P<utilisateur_id>\d+)')
     def historique_utilisateur(self, request, utilisateur_id=None):
         reservations = ReservationService.get_historique_utilisateur(utilisateur_id)
         serializer = self.get_serializer(reservations, many=True)
         return Response(serializer.data)
 
-    # Route Personnalisée 2 : POST /api/reservations/{id}/confirmer/
     @action(detail=True, methods=['post'])
     def confirmer(self, request, pk=None):
         try:
-            reservation = ReservationService.confirmer_paiement(pk)
+            stripe_id = request.data.get('stripePaymentId') 
+            reservation = ReservationService.confirmer_paiement(pk, stripe_id)
             return Response(self.get_serializer(reservation).data)
         except Reservation.DoesNotExist:
             return Response({"erreur": "Réservation introuvable"}, status=status.HTTP_404_NOT_FOUND)
         
-    # NOUVELLE ROUTE : POST /api/reservations/{id}/annuler/
     @action(detail=True, methods=['post'])
     def annuler(self, request, pk=None):
         try:
@@ -162,30 +142,41 @@ class ReservationViewSet(viewsets.ModelViewSet):
         if self.request.method == 'GET':
             return [AllowAny()]
         if self.request.method == 'POST':
-            return [IsAuthenticated()] # 👉 Autorise les joueurs connectés à réserver
-        return [IsAdminRole()] # 👉 L'admin garde le monopole pour modifier/supprimer
+            return [IsAuthenticated()]
+        return [IsAdminRole()]
+    
+    def create(self, request, *args, **kwargs):
+        try:
+            data = request.data
+            voyage_id = data.get('voyage', {}).get('id') if isinstance(data.get('voyage'), dict) else data.get('voyage_id') or data.get('voyage')
+            utilisateur_id = data.get('utilisateur', {}).get('id') if isinstance(data.get('utilisateur'), dict) else data.get('utilisateur_id') or data.get('utilisateur')
+            
+            utilisateur = Utilisateur.objects.get(id=utilisateur_id)
+            nb_places = int(data.get('nbPlacesDemandees', 1))
+
+            reservation = ReservationService.creer(voyage_id, utilisateur, nb_places)
+            return Response(ReservationSerializer(reservation).data, status=status.HTTP_201_CREATED)
+        except Exception as e:
+            return Response({"erreur": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['POST'])
-@permission_classes([IsAuthenticated]) # 👉 On force la sécurité
+@permission_classes([IsAuthenticated])
 def avis_vocal(request):
     audio_file = request.FILES.get('audio')
-    reservation_id = request.data.get('reservationId') # 👉 On récupère la réservation d'Angular !
+    reservation_id = request.data.get('reservationId') 
     note = request.data.get('note', 5)
 
     if not audio_file:
         return Response({"error": "Audio manquant"}, status=400)
 
     try:
-        # On devine le voyage grâce à la réservation
         res = Reservation.objects.get(id=reservation_id)
         voyage_id = res.voyage.id
     except Reservation.DoesNotExist:
         return Response({"error": "Réservation introuvable"}, status=404)
 
-    # 1. Transcription IA
     texte_avis = RechercheIntelligenteService.transcrire_audio(audio_file)
     
-    # 2. Création de l'avis avec l'utilisateur connecté (sécurisé)
     avis_data = {
         "voyage": voyage_id,
         "utilisateur": request.user.id,
@@ -195,31 +186,24 @@ def avis_vocal(request):
     AvisService.creer(avis_data)
     
     return Response({"message": "Avis vocal enregistré !", "texte": texte_avis})
-# Ta CLÉ SECRÈTE Stripe (Ne la donne jamais au front-end !)
+
 stripe.api_key = os.getenv('STRIPE_SECRET_KEY')
 
 @api_view(['POST'])
 def create_payment_intent(request):
     try:
-        # 1. On récupère le prix envoyé par Angular
         prix_total = float(request.data.get('prixTotal', 0))
-        
-        # 2. PIÈGE CLASSIQUE : Stripe travaille TOUJOURS en centimes ! (50€ = 5000 centimes)
         montant_centimes = int(prix_total * 100)
 
-        # 3. On demande le "ticket" à Stripe
         intent = stripe.PaymentIntent.create(
             amount=montant_centimes,
             currency='eur',
             automatic_payment_methods={'enabled': True},
         )
         
-        # 4. On renvoie le ticket secret à Angular
         return Response({'clientSecret': intent.client_secret})
-    
     except Exception as e:
         return Response({'error': str(e)}, status=403)
-    
     
 class AuthAPIView(APIView):
     permission_classes = [AllowAny]
@@ -227,11 +211,10 @@ class AuthAPIView(APIView):
 
     def post(self, request):
         email = request.data.get('email')
-        mot_de_passe = request.data.get('motDePasse') # Ou 'password', gère les deux si tu veux
+        mot_de_passe = request.data.get('motDePasse') 
 
         try:
             user = Utilisateur.objects.get(email=email)
-            # Comparaison "brute" comme dans l'ancien projet
             if user.mot_de_passe == mot_de_passe:
                 token = JwtService.generer_token(user)
                 return Response({
@@ -260,9 +243,21 @@ class RegisterAPIView(APIView):
             mot_de_passe=mot_de_passe,
             role="ROLE_USER"
         )
+        
+        try:
+            send_mail(
+                "Bienvenue chez Agence de Voyage ✈️",
+                "Bonjour et bienvenue !\n\nVotre compte a été créé avec succès. Préparez-vous à découvrir de nouvelles destinations !\n\nL'équipe.",
+                settings.EMAIL_HOST_USER,
+                [email],
+                fail_silently=True
+            )
+        except Exception:
+            pass
+
         return Response({"message": "Inscription réussie !"}, status=status.HTTP_201_CREATED)
     
-    # ==========================================
+# ==========================================
 # 🌐 GOOGLE OAUTH2 MANUEL
 # ==========================================
 class GoogleLoginView(APIView):
@@ -271,7 +266,6 @@ class GoogleLoginView(APIView):
 
     def get(self, request):
         client_id = os.getenv('GOOGLE_CLIENT_ID')
-        # L'URL exacte enregistrée dans ta console Google
         redirect_uri = "http://localhost:8000/accounts/google/login/callback/"
         scope = "email profile"
         url = f"https://accounts.google.com/o/oauth2/v2/auth?client_id={client_id}&redirect_uri={redirect_uri}&response_type=code&scope={scope}"
@@ -294,17 +288,27 @@ class GoogleCallbackView(APIView):
         res = requests.post(token_url, data=data)
         access_token = res.json().get('access_token')
 
-        # Récupération de l'email
         user_res = requests.get("https://www.googleapis.com/oauth2/v2/userinfo", headers={"Authorization": f"Bearer {access_token}"})
         email = user_res.json().get('email')
 
-        # Création ou connexion
         user, created = Utilisateur.objects.get_or_create(
             email=email,
             defaults={'mot_de_passe': str(uuid.uuid4()), 'role': 'ROLE_USER'}
         )
         
-        # Redirection vers Angular
+        # 👉 ENVOI DU MAIL DE BIENVENUE GOOGLE
+        if created:
+            try:
+                send_mail(
+                    "Bienvenue chez Agence de Voyage ✈️",
+                    "Bonjour !\n\nVotre compte a été créé avec succès via Google.\n\nL'équipe.",
+                    settings.EMAIL_HOST_USER,
+                    [email],
+                    fail_silently=True
+                )
+            except Exception:
+                pass
+        
         token = JwtService.generer_token(user)
         redirect_url = f"http://localhost:4200/login?token={token}&id={user.id}&role={user.role}&email={user.email}"
         return redirect(redirect_url)
@@ -338,7 +342,6 @@ class GithubCallbackView(APIView):
         res = requests.post('https://github.com/login/oauth/access_token', data=data, headers=headers)
         access_token = res.json().get('access_token')
 
-        # Récupération de l'email
         user_res = requests.get('https://api.github.com/user', headers={'Authorization': f"Bearer {access_token}"})
         email = user_res.json().get('email')
         
@@ -354,6 +357,86 @@ class GithubCallbackView(APIView):
             defaults={'mot_de_passe': str(uuid.uuid4()), 'role': 'ROLE_USER'}
         )
         
+        # 👉 ENVOI DU MAIL DE BIENVENUE GITHUB
+        if created:
+            try:
+                send_mail(
+                    "Bienvenue chez Agence de Voyage ✈️",
+                    "Bonjour !\n\nVotre compte a été créé avec succès via GitHub.\n\nL'équipe.",
+                    settings.EMAIL_HOST_USER,
+                    [email],
+                    fail_silently=True
+                )
+            except Exception:
+                pass
+        
         token = JwtService.generer_token(user)
         redirect_url = f"http://localhost:4200/login?token={token}&id={user.id}&role={user.role}&email={user.email}"
         return redirect(redirect_url)
+    
+class BilletViewSet(viewsets.ModelViewSet):
+    serializer_class = BilletSerializer
+
+    def get_queryset(self):
+        user = self.request.user 
+        if user.role == 'ROLE_ADMIN':
+            return Billet.objects.all()
+        return Billet.objects.filter(reservation__utilisateur=user)
+
+    def get_permissions(self):
+        if self.action in ['update', 'partial_update', 'destroy']:
+            return [IsAdminRole()]
+        return [IsAuthenticated()]
+
+    @action(detail=False, methods=['get'], url_path='trouver-par-siege')
+    def trouver_par_siege(self, request):
+        voyage_id = request.query_params.get('voyageId')
+        numero_siege = request.query_params.get('siege')
+        try:
+            billet = Billet.objects.get(reservation__voyage_id=voyage_id, siege=numero_siege)
+            return Response(ReservationSerializer(billet.reservation).data)
+        except Billet.DoesNotExist:
+            return Response({"erreur": "Personne n'occupe cette place"}, status=404)
+        
+class CheckEmailView(APIView):
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    def post(self, request):
+        email = request.data.get('email')
+        try:
+            # On cherche l'utilisateur dans la base
+            user = Utilisateur.objects.get(email=email)
+            
+            # 👉 ENVOI DU VRAI MOT DE PASSE PAR MAIL
+            try:
+                sujet = "Récupération de votre mot de passe 🔒"
+                texte = (
+                    f"Bonjour,\n\n"
+                    f"Vous avez oublié votre mot de passe. Voici votre mot de passe actuel : {user.mot_de_passe}\n\n"
+                    f"Nous vous conseillons de le modifier depuis votre profil une fois connecté.\n\n"
+                    f"L'équipe Agence de Voyage."
+                )
+                send_mail(sujet, texte, settings.EMAIL_HOST_USER, [email], fail_silently=True)
+            except Exception as e:
+                print(f"Erreur envoi mail reset : {e}")
+                
+            return Response({"message": "Email trouvé, mot de passe envoyé."}, status=status.HTTP_200_OK)
+            
+        except Utilisateur.DoesNotExist:
+            return Response({"error": "Email introuvable."}, status=status.HTTP_404_NOT_FOUND)
+        
+class ResetPasswordView(APIView):
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    def post(self, request):
+        email = request.data.get('email')
+        new_password = request.data.get('newPassword')
+        try:
+            user = Utilisateur.objects.get(email=email)
+            user.mot_de_passe = new_password
+            user.save()
+            return Response({"message": "Mot de passe mis à jour."}, status=status.HTTP_200_OK)
+        except Utilisateur.DoesNotExist:
+            return Response({"error": "Utilisateur introuvable."}, status=status.HTTP_404_NOT_FOUND)

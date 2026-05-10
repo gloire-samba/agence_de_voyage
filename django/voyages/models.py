@@ -26,8 +26,11 @@ class Voyage(models.Model):
     ville_arrivee = models.CharField(max_length=100)
     prix_total = models.DecimalField(max_digits=10, decimal_places=2)
     note_moyenne = models.DecimalField(max_digits=3, decimal_places=2, null=True, blank=True)
+    # 👉 NOUVEAU : Capacité totale de l'avion
+    nombre_places_total = models.IntegerField(default=50)
     # 👉 NOUVEAU : Le statut du voyage
     statut = models.CharField(max_length=20, default='A_VENIR')
+    
 
     def __str__(self):
         return f"{self.ville_depart} -> {self.ville_arrivee} ({self.prix_total}€) - {self.statut}"
@@ -79,6 +82,16 @@ class Reservation(models.Model):
     # Peut être null tant que ce n'est pas payé
     date_confirmation = models.DateTimeField(null=True, blank=True)
     statut = models.CharField(max_length=20, choices=STATUT_CHOICES, default='EN_ATTENTE')
+    # 👉 NOUVEAU : On stocke le reçu de Stripe !
+    stripe_payment_id = models.CharField(max_length=255, null=True, blank=True)
 
     def __str__(self):
         return f"Reservation {self.id} - {self.utilisateur.email}"
+    
+# 👉 NOUVEAU : La table Billet
+class Billet(models.Model):
+    siege = models.CharField(max_length=10) # Ex: "12F" ou "99Z"
+    reservation = models.ForeignKey(Reservation, on_delete=models.CASCADE, related_name='billets')
+
+    def __str__(self):
+        return self.siege

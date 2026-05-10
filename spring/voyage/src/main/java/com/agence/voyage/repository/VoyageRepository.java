@@ -28,7 +28,16 @@ public interface VoyageRepository extends JpaRepository<Voyage, Long> {
            "(:maxSegments IS NULL OR SIZE(v.segments) <= :maxSegments) AND " +
            "(:minSegments IS NULL OR SIZE(v.segments) >= :minSegments) AND " +
            "(:dateDebut IS NULL OR CAST(s.heureDepart AS string) >= :dateDebut) AND " +
-           "(:dateFin IS NULL OR CAST(s.heureDepart AS string) <= :dateFin)")
+           "(:dateFin IS NULL OR CAST(s.heureDepart AS string) <= :dateFin) AND " +
+           
+           // 👉 NOUVEAU 1 : Filtre sur la taille totale du véhicule
+           "(:placesTotal IS NULL OR v.nombrePlacesTotal = :placesTotal) AND " +
+           
+           // 👉 NOUVEAU 2 : LA SOUSTRACTION MAGIQUE ! 
+           // Capacité - Nombre de billets non annulés >= ce que l'utilisateur demande
+           "(:placesRestantesMin IS NULL OR " +
+           "(v.nombrePlacesTotal - (SELECT COUNT(b) FROM Billet b WHERE b.reservation.voyage = v AND b.reservation.statut != 'ANNULE')) >= :placesRestantesMin)")
+       
     List<Voyage> rechercherParCriteresFuzzy(
             @Param("depart") String depart, 
             @Param("arrivee") String arrivee, 
@@ -38,5 +47,8 @@ public interface VoyageRepository extends JpaRepository<Voyage, Long> {
             @Param("maxSegments") Integer maxSegments,
             @Param("dateDebut") String dateDebut,
             @Param("dateFin") String dateFin,
-            @Param("statut") String statut);
+            @Param("statut") String statut,
+            @Param("placesTotal") Integer placesTotal, // NOUVEAU
+            @Param("placesRestantesMin") Integer placesRestantesMin // NOUVEAU
+       );
 }

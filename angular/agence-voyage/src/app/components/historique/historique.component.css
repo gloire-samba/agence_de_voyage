@@ -289,3 +289,168 @@ h2 {
 .btn-echanger:hover { 
   background-color: #d97706; 
 }
+
+/* --- Badges pour les Sièges --- */
+.badge-siege {
+  background-color: #f1f5f9;
+  color: #3b82f6;
+  border: 1px solid #bae6fd;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-weight: 900;
+  font-family: monospace;
+  font-size: 14px;
+}
+
+/* --- Bouton Mon Billet --- */
+.btn-billet {
+  background-color: #0f172a;
+  color: white;
+}
+.btn-billet:hover {
+  background-color: #1e293b;
+}
+
+/* ==========================================
+   MODALE DU BILLET (CARTE D'EMBARQUEMENT)
+   ========================================== */
+.modal-overlay {
+  position: fixed;
+  top: 0; left: 0; width: 100vw; height: 100vh;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex; justify-content: center; align-items: center;
+  z-index: 1000;
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+}
+
+.ticket-modal {
+  background: white;
+  width: 90%;
+  max-width: 450px;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+  animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(30px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.ticket-header {
+  background: #0f172a; /* Bleu très sombre */
+  color: white;
+  padding: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.ticket-header h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  letter-spacing: 2px;
+}
+
+.btn-close-ticket {
+  background: none; border: none; color: #94a3b8; font-size: 20px; cursor: pointer;
+}
+.btn-close-ticket:hover { color: white; }
+
+.ticket-body {
+  padding: 30px 20px;
+}
+
+.ticket-trajet {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+  background: #f8fafc;
+  padding: 15px;
+  border-radius: 12px;
+  border: 1px dashed #cbd5e1;
+}
+
+.t-ville {
+  font-size: 1.4rem;
+  font-weight: 900;
+  color: #1e293b;
+}
+
+.t-fleche {
+  font-size: 1.5rem;
+  color: #3b82f6;
+}
+
+.ticket-details {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.ticket-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.t-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  color: #64748b;
+  font-weight: bold;
+  margin-bottom: 5px;
+}
+
+.t-valeur {
+  font-size: 1rem;
+  color: #0f172a;
+  font-weight: 600;
+}
+
+.siege-info {
+  grid-column: span 2;
+  background: #eff6ff;
+  padding: 10px;
+  border-radius: 8px;
+  border-left: 4px solid #0ea5e9;
+}
+
+.t-siege {
+  color: #0ea5e9;
+  font-size: 1.2rem;
+  font-family: monospace;
+  font-weight: 900;
+}
+
+.ticket-footer {
+  padding: 20px;
+  background: #f8fafc;
+  border-top: 2px dashed #e2e8f0;
+}
+
+.btn-telecharger-pdf {
+  width: 100%;
+  background: #ef4444;
+  color: white;
+  border: none;
+  padding: 15px;
+  border-radius: 10px;
+  font-size: 1.1rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-telecharger-pdf:hover {
+  background: #dc2626;
+}
+
+.btn-annuler {
+  background-color: #ef4444; color: white; border: none;
+  padding: 6px 12px; border-radius: 6px; cursor: pointer;
+  font-weight: bold; transition: background-color 0.2s;
+}
+.btn-annuler:hover { background-color: #dc2626; }

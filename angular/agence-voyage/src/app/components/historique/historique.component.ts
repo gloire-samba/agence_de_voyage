@@ -1,16 +1,15 @@
 import { ChangeDetectorRef, Component, OnInit, inject } from '@angular/core';
 import { CommonModule, DatePipe, CurrencyPipe } from '@angular/common';
 import { Router } from '@angular/router';
-import { HttpClient } from '@angular/common/http'; // 👉 NOUVEAU
-
+import { HttpClient } from '@angular/common/http'; 
+import { jsPDF } from 'jspdf'; // 👉 NOUVEL IMPORT
 
 import { ReservationService } from '../../services/reservation.service';
 import { Reservation } from '../../models/reservation';
 import { VoyageService } from '../../services/voyage.service';
 import { AvisFormComponent } from '../avis-form/avis-form.component'; 
 import { AuthService } from '../../services/auth.service';
-import { ServeurService } from '../../services/serveur.service'; // 👉 NOUVEAU
-import { environment } from '../../../environments/environment.development';
+import { ServeurService } from '../../services/serveur.service'; 
 
 @Component({
   selector: 'app-historique',
@@ -25,8 +24,7 @@ export class HistoriqueComponent implements OnInit {
   private voyageService = inject(VoyageService); 
   private router = inject(Router); 
   private authService = inject(AuthService);
-  private http = inject(HttpClient); // 👉 NOUVEAU
-  private serveurService = inject(ServeurService); // 👉 NOUVEAU
+  private serveurService = inject(ServeurService); 
 
   reservations: Reservation[] = [];
   isLoading: boolean = true;
@@ -36,6 +34,10 @@ export class HistoriqueComponent implements OnInit {
   afficherModalAvis: boolean = false;
   reservationSelectionneeId!: number;
   avisSelectionne: any = null;
+
+  // 👉 NOUVEAU : État de la modale Billet
+  afficherModalBillet: boolean = false;
+  reservationBillet: Reservation | null = null;
 
   ngOnInit(): void {
     this.chargerHistorique();
@@ -85,32 +87,25 @@ export class HistoriqueComponent implements OnInit {
     }
   }
 
-  // ==========================================
-  // 👉 LE BOSS FINAL : WORKFLOW D'ANNULATION
-  // ==========================================
-
   getStatutVoyage(reservation: Reservation): string {
     const v = this.getVoyage(reservation);
     return v.statut || 'A_VENIR';
   }
 
   demanderRemboursement(res: Reservation) {
-    const confirmation = confirm(`Voulez-vous demander un remboursement de ${this.getPrixPaye(res)}€ directement sur la carte utilisée lors du paiement ?`);
+    if (!res.id) return;
+    const confirmation = confirm(`Voulez-vous demander un remboursement intégral de ${this.getPrixPaye(res)}€ directement sur la carte utilisée lors du paiement ?`);
     if (confirmation) {
-      const backend = this.serveurService.getBackend();
-      const baseUrl = environment.urls[backend];
-      const url = backend === 'django' ? `${baseUrl}/reservations/${res.id}/rembourser/` : `${baseUrl}/reservations/${res.id}/rembourser`;
-
-      // On simule l'appel Stripe côté front en attendant que l'endpoint backend soit branché
-      this.http.post(url, {}).subscribe({
+      this.isLoading = true;
+      this.cdr.detectChanges();
+      this.reservationService.annulerReservation(res.id).subscribe({
         next: () => {
-          alert("✅ Remboursement validé via Stripe. L'argent sera sur votre compte sous 3 à 5 jours.");
-          this.chargerHistorique();
+          alert("✅ Remboursement Stripe validé avec succès ! L'argent apparaîtra sur votre compte sous 3 à 5 jours.");
+          this.chargerHistorique(); 
         },
-        error: () => {
-          alert("✅ [SIMULATION] Remboursement Stripe validé ! (L'API backend de remboursement n'est pas encore connectée).");
-          // Simulation de mise à jour pour l'UI
-          (res as any).statut = 'REMBOURSE';
+        error: (err) => {
+          this.isLoading = false;
+          alert("❌ Erreur lors du traitement du remboursement avec la banque.");
           this.cdr.detectChanges();
         }
       });
@@ -119,34 +114,82 @@ export class HistoriqueComponent implements OnInit {
 
   echangerBillet(res: Reservation) {
     alert(`Votre avoir de ${this.getPrixPaye(res)}€ est enregistré ! Vous allez être redirigé vers le catalogue pour choisir un nouveau vol.`);
-    // Redirection propre via le router
     this.router.navigate(['/recherche']);
+  }
+
+  // ==========================================
+  // 👉 GESTION DU BILLET ET PDF
+  // ==========================================
+
+  getSieges(reservation: Reservation): string {
+    if (!reservation.billets || reservation.billets.length === 0) return 'En attente';
+    return reservation.billets.map(b => b.siege).join(', ');
+  }
+
+  ouvrirBillet(res: Reservation) {
+    this.reservationBillet = res;
+    this.afficherModalBillet = true;
+  }
+
+  fermerBillet() {
+    this.afficherModalBillet = false;
+    this.reservationBillet = null;
+  }
+
+  telechargerPDF() {
+    if (!this.reservationBillet) return;
+    
+    const res = this.reservationBillet;
+    const doc = new jsPDF();
+    
+    // Décoration de l'en-tête
+    doc.setFillColor(15, 23, 42); // Bleu foncé
+    doc.rect(0, 0, 210, 40, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(22);
+    doc.text('CARTE D\'EMBARQUEMENT', 105, 25, { align: 'center' });
+
+    // Contenu principal
+    doc.setTextColor(0, 0, 0);
+    doc.setFontSize(12);
+    
+    doc.text(`N° de Réservation : #${res.id}`, 20, 60);
+    const dateC = this.getDateConfirmation(res);
+    doc.text(`Date d'achat : ${dateC ? new Date(dateC).toLocaleDateString('fr-FR') : 'N/A'}`, 140, 60);
+
+    // Encadré Trajet
+    doc.setLineWidth(0.5);
+    doc.rect(20, 75, 170, 35);
+    doc.setFontSize(16);
+    doc.text(`${this.getVilleDepart(res)}`, 30, 95);
+    doc.text(`➔`, 100, 95);
+    doc.text(`${this.getVilleArrivee(res)}`, 120, 95);
+
+    // Infos passager et places
+    doc.setFontSize(12);
+    doc.text('INFORMATIONS VOYAGEUR', 20, 130);
+    doc.setFontSize(10);
+    doc.text(`Propriétaire : Compte Client N°${this.utilisateurConnecte}`, 20, 140);
+    doc.text(`Siège(s) assigné(s) : ${this.getSieges(res)}`, 20, 150);
+    doc.text(`Montant réglé : ${this.getPrixPaye(res)} EUR`, 20, 160);
+
+    // Footer
+    doc.setFontSize(10);
+    doc.setTextColor(100, 100, 100);
+    doc.text('Merci de voyager avec nous. Présentez ce document à la porte d\'embarquement.', 105, 280, { align: 'center' });
+
+    // Lancement du téléchargement
+    doc.save(`Billet_Voyage_${res.id}.pdf`);
   }
 
   // 🛡️ --- MÉTHODES DE LECTURE UNIVERSELLES --- 🛡️
 
-  private getVoyage(reservation: Reservation): any {
-    return reservation.voyage || {};
-  }
-
-  getVilleDepart(reservation: Reservation): string {
-    const v = this.getVoyage(reservation);
-    return v.villeDepart || v.ville_depart || 'Inconnu';
-  }
-
-  getVilleArrivee(reservation: Reservation): string {
-    const v = this.getVoyage(reservation);
-    return v.villeArrivee || v.ville_arrivee || 'Inconnu';
-  }
-
-  getPrixPaye(reservation: Reservation): number {
-    return reservation.prixPaye || (reservation as any).prix_paye || 0;
-  }
-
-  getDateConfirmation(reservation: Reservation): string {
-    return reservation.dateConfirmation || (reservation as any).date_confirmation || '';
-  }
-
+  private getVoyage(reservation: Reservation): any { return reservation.voyage || {}; }
+  getVilleDepart(reservation: Reservation): string { const v = this.getVoyage(reservation); return v.villeDepart || v.ville_depart || 'Inconnu'; }
+  getVilleArrivee(reservation: Reservation): string { const v = this.getVoyage(reservation); return v.villeArrivee || v.ville_arrivee || 'Inconnu'; }
+  getPrixPaye(reservation: Reservation): number { return reservation.prixPaye || (reservation as any).prix_paye || 0; }
+  getDateConfirmation(reservation: Reservation): string { return reservation.dateConfirmation || (reservation as any).date_confirmation || ''; }
+  
   getMonAvis(reservation: Reservation): any {
     const voyage = this.getVoyage(reservation);
     if (voyage && voyage.avis && Array.isArray(voyage.avis)) {
@@ -185,8 +228,5 @@ export class HistoriqueComponent implements OnInit {
     }
   }
 
-  getDateAvis(avis: any): string {
-    if (!avis) return '';
-    return avis.dateCreation || avis.date_creation || '';
-  }
+  getDateAvis(avis: any): string { return avis ? (avis.dateCreation || avis.date_creation || '') : ''; }
 }
