@@ -3,62 +3,56 @@
   
   <div class="search-panel">
     
-    <!-- Zone de recherche classique -->
     <div class="manual-search-row">
-      
       <div class="input-group">
         <label>Départ</label>
-        <input type="text" [(ngModel)]="villeDepart" placeholder="De quelle ville ?" />
+        <input type="text" [(ngModel)]="villeDepart" (ngModelChange)="rechercheManuelle()" placeholder="De quelle ville ?" />
       </div>
 
-      <!-- Le bouton de permutation -->
-      <button class="btn-swap" (click)="permuterVilles()" title="Inverser les villes">⇄</button>
+      <button class="btn-swap" (click)="permuterVilles(); rechercheManuelle()" title="Inverser les villes">⇄</button>
 
       <div class="input-group">
         <label>Destination</label>
-        <input type="text" [(ngModel)]="villeArrivee" placeholder="Vers où ?" />
+        <input type="text" [(ngModel)]="villeArrivee" (ngModelChange)="rechercheManuelle()" placeholder="Vers où ?" />
       </div>
 
       <div class="input-group">
         <label>Date</label>
-        <input type="date" [(ngModel)]="dateDepart" />
+        <input type="date" [(ngModel)]="dateDepart" (ngModelChange)="rechercheManuelle()" />
       </div>
 
-      <button class="btn-search" (click)="rechercheManuelle()">Rechercher</button>
+      <div class="input-group">
+        <label>Durée Max (h)</label>
+        <input type="number" [(ngModel)]="dureeMaxHeures" (ngModelChange)="rechercheManuelle()" placeholder="Ex: 5" style="width: 80px;" />
+      </div>
+
+      <div class="input-group">
+        <label>Recherche Rapide</label>
+        <input type="text" [(ngModel)]="texteRecherche" (ngModelChange)="rechercheManuelle()" placeholder="Mot clé..." />
+      </div>
     </div>
 
-    <!-- Séparateur vertical -->
     <div class="divider">
       <span>OU</span>
     </div>
 
-    <!-- Zone IA Vocale et Textuelle -->
     <div class="ia-search-zone">
       <p class="ia-label">Demandez à l'IA</p>
       
-      <!-- Champ IA Textuel -->
       <div class="ia-text-box">
         <input 
           type="text" 
           [(ngModel)]="texteIA" 
-          placeholder="Ex: les voyages coutant moins de 500 €"
+          placeholder="Ex: les voyage de moins de 500 €"
           (keyup.enter)="rechercheTexteIA()"
-          [disabled]="isLoading || isRecording"
+          [disabled]="isLoading"
         />
-        <button class="btn-ia-text" (click)="rechercheTexteIA()" [disabled]="isLoading || isRecording || !texteIA" title="Envoyer à l'IA">
-          ✨
-        </button>
+        <button class="btn-ia-text" (click)="rechercheTexteIA()" [disabled]="isLoading || !texteIA" title="Envoyer à l'IA">✨</button>
       </div>
 
       <p class="ia-ou">ou parlez-lui</p>
 
-      <button 
-        class="btn-mic" 
-        [class.recording]="isRecording" 
-        (click)="toggleRecording()"
-        [disabled]="isLoading"
-        title="Maintenez pour parler">
-        
+      <button class="btn-mic" [class.recording]="isRecording" (click)="toggleRecording()" [disabled]="isLoading" title="Maintenez pour parler">
         <span *ngIf="!isRecording && !isLoading">🎤</span>
         <span *ngIf="isRecording">🛑</span>
         <span *ngIf="isLoading" class="spinner">⏳</span>
@@ -67,28 +61,19 @@
 
   </div>
 
-  <!-- Zone de retour d'information -->
   <div class="feedback-zone" *ngIf="phraseReconnue || erreur">
     <div class="success-msg" *ngIf="phraseReconnue && !erreur">{{ phraseReconnue }}</div>
     <div class="error-msg" *ngIf="erreur">⚠️ {{ erreur }}</div>
   </div>
 
-  <!-- NOUVEAU : ZONE 0 RÉSULTAT -->
   <div class="no-results-zone" *ngIf="!isLoading && !erreur && voyagesA_Afficher.length === 0">
     <h3>Aucun voyage trouvé 🏜️</h3>
     <p>
       Votre recherche 
-      <strong>"{{ phraseReconnue || villeDepart || villeArrivee || dateDepart || 'actuelle' }}"</strong> 
+      <strong>"{{ phraseReconnue || villeDepart || villeArrivee || dateDepart || texteRecherche || 'actuelle' }}"</strong> 
       n'a donné aucun résultat.
     </p>
-    <p>Veuillez essayer avec d'autres critères (ex: une autre destination ou un budget plus élevé).</p>
   </div>
 </div>
 
-<!-- LE WIDGET CATALOGUE EST MAINTENANT GÉRÉ ICI -->
-<!-- Il ne s'affiche que s'il y a des résultats -->
-<app-catalogue 
-  *ngIf="voyagesA_Afficher.length > 0"
-  [voyages]="voyagesA_Afficher" 
-  (reserver)="declencherReservation($event)">
-</app-catalogue>
+<app-catalogue [voyages]="voyagesA_Afficher" (reserver)="declencherReservation($event)"></app-catalogue>

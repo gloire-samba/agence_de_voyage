@@ -1,67 +1,101 @@
 <div class="form-page-container">
   
   <div class="header-action">
-    <button class="btn-back" (click)="annuler()">⬅ Retour à la liste</button>
-    <h2>{{ voyageId ? 'Édition du Voyage #' + voyageId : 'Création d\'un Nouveau Voyage' }}</h2>
+    <h2>{{ voyageId ? 'Modifier le Voyage' : 'Nouveau Voyage' }}</h2>
+    <button class="btn-back" (click)="annuler()">
+      <span>⬅</span> Retour à la liste
+    </button>
   </div>
 
   @if (isLoading) {
-    <p>Chargement des données...</p>
+    <div style="text-align: center; padding: 50px;">
+      <p>⏳ Chargement des données techniques...</p>
+    </div>
   } @else {
     <div class="card-form">
       
       <div class="form-row">
         <div class="form-group">
-          <label>Ville de Départ Globale</label>
-          <input type="text" [(ngModel)]="formVoyage.villeDepart" placeholder="Ex: Paris">
+          <label>Ville de Départ</label>
+          <input type="text" [(ngModel)]="formVoyage.villeDepart" (ngModelChange)="verifierFormulaire()" placeholder="Ex: Paris">
         </div>
         <div class="form-group">
-          <label>Ville d'Arrivée Globale</label>
-          <input type="text" [(ngModel)]="formVoyage.villeArrivee" placeholder="Ex: Tokyo">
+          <label>Ville d'Arrivée</label>
+          <input type="text" [(ngModel)]="formVoyage.villeArrivee" (ngModelChange)="verifierFormulaire()" placeholder="Ex: New York">
         </div>
       </div>
 
       <div class="form-row">
         <div class="form-group">
           <label>Prix Total (€)</label>
-          <input type="number" [(ngModel)]="formVoyage.prixTotal">
+          <input type="number" [(ngModel)]="formVoyage.prixTotal" (ngModelChange)="verifierFormulaire()" placeholder="0.00">
         </div>
         <div class="form-group">
-          <label>Statut Commercial</label>
-          <select [(ngModel)]="formVoyage.statut">
-            <option value="A_VENIR">À Venir (En vente)</option>
-            <option value="EN_COURS">En Cours (Départ imminent)</option>
-            <option value="TERMINE">Terminé (Archivé)</option>
-            <option value="ANNULE">Annulé (Non vendable)</option>
+          <label>Nombre de Places</label>
+          <input type="number" [(ngModel)]="formVoyage.nombrePlacesTotal" (ngModelChange)="verifierFormulaire()" placeholder="Ex: 150">
+        </div>
+        <div class="form-group">
+          <label>Statut</label>
+          <select [(ngModel)]="formVoyage.statut" [disabled]="!voyageId">
+            <option value="A_VENIR">A VENIR</option>
+            <option *ngIf="voyageId" value="EN_COURS">EN COURS</option>
+            <option *ngIf="voyageId" value="TERMINE">TERMINE</option>
+            <option *ngIf="voyageId" value="ANNULE">ANNULE</option>
           </select>
         </div>
       </div>
 
-      <div class="form-group segments-box">
-        <label>🧩 Segments inclus dans ce voyage :</label>
-        <p class="helper">Cochez les étapes qui composent cet itinéraire.</p>
+      <div class="segments-box">
+        <div class="segments-header">
+          <label>🧩 Étapes du trajet (Segments)</label>
+          <button class="btn-add-segment" (click)="ajouterSegment()">+ Ajouter une escale</button>
+        </div>
         
         <div class="segments-list">
-          @for (s of segmentsExistants; track s.id) {
-            <label class="segment-item">
-              <input type="checkbox" 
-                     [checked]="formVoyage.segmentsIds.includes(s.id)"
-                     (change)="toggleSegment(s.id)">
-              <div class="segment-details">
-                <strong>#{{ s.id }} : {{ s.villeDepart || s.ville_depart }} ➔ {{ s.villeArrivee || s.ville_arrivee }}</strong>
-                <span>{{ s.heureDepart || s.heure_depart | date:'short' }} ({{ s.moyenTransport || s.moyen_transport }})</span>
+          @for (seg of formVoyage.segments; track $index) {
+            <div class="segment-card">
+              <div class="segment-title">
+                <span class="segment-number">SEGMENT {{ $index + 1 }}</span>
+                <button class="btn-delete-segment" (click)="supprimerSegment($index)">Supprimer</button>
               </div>
-            </label>
-          }
-          @if (segmentsExistants.length === 0) {
-            <p style="color: #ef4444;">Aucun segment disponible. Veuillez en créer un depuis le catalogue des segments.</p>
+
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Ville Départ</label>
+                  <input type="text" [(ngModel)]="seg.villeDepart" (ngModelChange)="verifierFormulaire()" placeholder="Départ">
+                </div>
+                <div class="form-group">
+                  <label>Date & Heure Départ</label>
+                  <input type="datetime-local" [(ngModel)]="seg.heureDepart" (ngModelChange)="verifierFormulaire()">
+                </div>
+              </div>
+
+              <div class="form-row" style="margin-bottom: 0;">
+                <div class="form-group">
+                  <label>Ville Arrivée</label>
+                  <input type="text" [(ngModel)]="seg.villeArrivee" (ngModelChange)="verifierFormulaire()" placeholder="Arrivée">
+                </div>
+                <div class="form-group">
+                  <label>Date & Heure Arrivée</label>
+                  <input type="datetime-local" [(ngModel)]="seg.heureArrivee" (ngModelChange)="verifierFormulaire()">
+                </div>
+              </div>
+            </div>
           }
         </div>
       </div>
 
+      @if (erreurFormulaire) {
+        <div class="alert-box error">
+          <span>⚠️</span> {{ erreurFormulaire }}
+        </div>
+      }
+
       <div class="form-actions">
         <button class="btn-cancel" (click)="annuler()">Annuler</button>
-        <button class="btn-save" (click)="sauvegarder()">💾 Enregistrer le Voyage</button>
+        <button class="btn-save" [disabled]="erreurFormulaire !== ''" (click)="sauvegarder()">
+          {{ voyageId ? '💾 Enregistrer les modifications' : '🚀 Créer le voyage' }}
+        </button>
       </div>
 
     </div>

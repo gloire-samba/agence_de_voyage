@@ -32,7 +32,7 @@ export class AppComponent {
   }
 
   allerAuDashboard() {
-    this.router.navigate(['/admin/dashboard']);
+    this.router.navigate(['/admin']);
   }
 
   deconnexion() {

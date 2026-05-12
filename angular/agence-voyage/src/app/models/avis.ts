@@ -4,8 +4,12 @@ export interface Avis {
   id: number;
   note: number;
   commentaire: string;
-  utilisateur: Utilisateur; // On récupère l'objet complet de l'utilisateur pour afficher son email
-  // 👉 NOUVEAU : On gère les deux formats (Spring / Django)
+  
+  // 👉 CORRECTION : On ajoute le '?' pour indiquer à Angular que 
+  // Spring Boot peut très bien ne pas envoyer cet objet à cause du @JsonIgnore
+  utilisateur?: Utilisateur; 
+  
+  email_auteur?: string; 
   dateCreation?: string; 
   date_creation?: string;
 }

@@ -71,20 +71,14 @@
               </td>
               
               <td>
-                
-                @if (res.statut === 'CONFIRME' && getStatutVoyage(res) === 'ANNULE') {
-                  <div class="actions-financieres">
-                    <button class="btn-rembourser" (click)="demanderRemboursement(res)">💶 Rembourser</button>
-                    <button class="btn-echanger" (click)="echangerBillet(res)">🔄 Échanger</button>
-                  </div>
+                @if (res.statut === 'ANNULE' || res.statut === 'REMBOURSE' || getStatutVoyage(res) === 'ANNULE') {
+                  <span class="no-action">-</span>
                 }
 
-                @else if (res.statut === 'EN_ATTENTE' || res.statut === 'ANNULE' || res.statut === 'REMBOURSE') {
+                @else if (res.statut === 'EN_ATTENTE') {
                   <div class="actions-groupe">
                     <button class="btn-payer-historique" (click)="allerAuPaiement(res)">💳 Payer</button>
-                    @if (res.statut === 'EN_ATTENTE') {
-                      <button class="btn-annuler" (click)="annulerReservation(res.id)">Annuler</button>
-                    }
+                    <button class="btn-annuler" (click)="annulerReservation(res.id)">Annuler</button>
                   </div>
                 }
 

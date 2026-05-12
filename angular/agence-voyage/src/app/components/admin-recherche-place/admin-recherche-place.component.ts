@@ -1,5 +1,5 @@
 import { Component, OnInit, inject } from '@angular/core';
-import { CommonModule, CurrencyPipe, DatePipe } from '@angular/common';
+import { CommonModule, CurrencyPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
 import { VoyageService } from '../../services/voyage.service';
@@ -10,7 +10,7 @@ import { Reservation } from '../../models/reservation';
 @Component({
   selector: 'app-admin-recherche-place',
   standalone: true,
-  imports: [CommonModule, FormsModule, DatePipe, CurrencyPipe],
+  imports: [CommonModule, FormsModule, CurrencyPipe],
   templateUrl: './admin-recherche-place.component.html',
   styleUrls: ['./admin-recherche-place.component.css']
 })

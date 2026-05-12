@@ -9,7 +9,7 @@ import requests
 import stripe
 import os
 import math
-from django.db.models import Avg, Count, Q, F
+from django.db.models import Avg, Count, Q, Min, Max, F, ExpressionWrapper, DurationField
 from io import BytesIO
 from reportlab.pdfgen import canvas
 
@@ -57,40 +57,50 @@ class VoyageService:
             pass
 
     @staticmethod
+    @transaction.atomic
     def creer(data):
-        return Voyage.objects.create(**data)
+        # 1. On extrait les segments du payload Angular
+        segments_data = data.pop('segments', [])
+        
+        # 2. On crée le voyage avec les infos globales
+        voyage = Voyage.objects.create(**data)
+        
+        # 3. On crée les segments liés à ce voyage
+        for seg_data in segments_data:
+            Segment.objects.create(voyage=voyage, **seg_data)
+            
+        return voyage
 
     @staticmethod
     @transaction.atomic
     def modifier(pk, data):
         voyage = Voyage.objects.get(id=pk)
         
-        # 👉 DÉTECTION DE L'ANNULATION PAR L'ADMIN
+        # 👉 On extrait les segments
+        segments_data = data.pop('segments', None)
+        
         passage_en_annule = data.get('statut') == 'ANNULE' and voyage.statut != 'ANNULE'
 
-        # Mise à jour classique des données du voyage
         for key, value in data.items():
             setattr(voyage, key, value)
         voyage.save()
 
-        # 👉 LA BOUCLE MAGIQUE DE REMBOURSEMENT MASSIF
+        # 👉 GESTION DES NOUVEAUX SEGMENTS
+        if segments_data is not None:
+            # L'admin a modifié les segments. On efface les anciens et on recrée les nouveaux
+            voyage.segments.all().delete()
+            for seg_data in segments_data:
+                Segment.objects.create(voyage=voyage, **seg_data)
+
         if passage_en_annule:
-            print(f"⚠️ Voyage #{pk} annulé par l'admin. Déclenchement du remboursement de masse...")
-            
-            # 1. On récupère toutes les réservations liées à ce voyage (qui ne sont pas déjà annulées)
             reservations = Reservation.objects.filter(voyage_id=pk).exclude(statut='ANNULE')
-            
             for res in reservations:
                 try:
-                    # 2. On appelle notre méthode de réservation qui gère Stripe + Email !
                     ReservationService.annuler(res.id)
-                    if res.utilisateur and res.utilisateur.email:
-                        print(f"✅ Client {res.utilisateur.email} remboursé.")
                 except Exception as e:
-                    print(f"❌ Échec remboursement automatique pour réservation #{res.id}: {e}")
+                    print(f"❌ Échec remboursement: {e}")
 
         return voyage
-
     @staticmethod
     def supprimer(pk):
         Voyage.objects.filter(id=pk).delete()
@@ -309,82 +319,81 @@ class RechercheIntelligenteService:
     IA_API_URL = "http://127.0.0.1:8001/api/ia/analyser"
 
     @staticmethod
-    def chercher_voyage(phrase_utilisateur):
+    def chercher_voyage(texte):
         try:
+            # 1. On interroge l'IA (qui va extraire duree_max_minutes)
             reponse = requests.post(
-                RechercheIntelligenteService.IA_API_URL, 
-                json={"texte": phrase_utilisateur}, 
-                timeout=15.0
+                "http://127.0.0.1:8001/api/ia/analyser",
+                json={"texte": texte},
+                timeout=10.0
             )
-            reponse.raise_for_status() 
+            reponse.raise_for_status()
             criteres = reponse.json()
-            print(f"🤖 IA a compris : {criteres}")
-            
-        except requests.exceptions.HTTPError as e:
-            if e.response.status_code in [429, 503]:
-                message_ia = e.response.json().get('detail', "Erreur API IA")
-                print(f"⚠️ Alerte remontée par l'IA : {message_ia}")
-                from rest_framework.exceptions import Throttled
-                raise Throttled(detail=message_ia)
-            else:
-                print(f"⚠️ Erreur HTTP {e.response.status_code}. Fallback activé !")
-                return Voyage.objects.all()
-                
-        except requests.exceptions.RequestException as e:
-            print(f"⚠️ L'IA est injoignable ou trop lente. Fallback activé !")
-            return Voyage.objects.all()
+        except Exception as e:
+            print(f"❌ Erreur IA : {e}")
+            return Voyage.objects.none()
 
-        # 👉 1. ON ANNOTE : On calcule le nombre d'escales ET le nombre de places occupées
+        # 👉 2. PRÉPARATION DE LA REQUÊTE AVEC CALCUL DES DATES
+        # On calcule le tout premier départ et la toute dernière arrivée de l'itinéraire
         resultats = Voyage.objects.annotate(
-            nb_segments_total=Count('segments', distinct=True),
-            places_occupees=Count(
-                'reservations__billets',
-                filter=~Q(reservations__statut='ANNULE'), # On ignore les billets annulés
-                distinct=True
-            )
+            depart_initial=Min('segments__heure_depart'),
+            arrivee_finale=Max('segments__heure_arrivee')
         )
 
-        resultats = resultats.filter(segments__ordre=1)
-        
-        if not criteres.get('statut'):
-            resultats = resultats.filter(segments__heure_depart__gte=timezone.now())
-
+        # 3. Application des filtres classiques
         if criteres.get('ville_depart'):
             resultats = resultats.filter(ville_depart__icontains=criteres['ville_depart'])
-            
         if criteres.get('ville_arrivee'):
             resultats = resultats.filter(ville_arrivee__icontains=criteres['ville_arrivee'])
-            
         if criteres.get('prix_min') is not None:
             resultats = resultats.filter(prix_total__gte=criteres['prix_min'])
-            
         if criteres.get('prix_max') is not None:
             resultats = resultats.filter(prix_total__lte=criteres['prix_max'])
-
-        if criteres.get('date_debut'):
-            resultats = resultats.filter(segments__ordre=1, segments__heure_depart__date__gte=criteres['date_debut'])
-            
-        if criteres.get('date_fin'):
-            resultats = resultats.filter(segments__ordre=1, segments__heure_depart__date__lte=criteres['date_fin'])
-
-        if criteres.get('escales_min') is not None:
-            resultats = resultats.filter(nb_segments_total__gte=criteres['escales_min'] + 1)
-            
-        if criteres.get('escales_max') is not None:
-            resultats = resultats.filter(nb_segments_total__lte=criteres['escales_max'] + 1)
-
         if criteres.get('statut'):
-            resultats = resultats.filter(statut__iexact=criteres['statut'])
+            resultats = resultats.filter(statut=criteres['statut'])
+            
+        # Filtres sur les dates
+        if criteres.get('date_debut'):
+            resultats = resultats.filter(depart_initial__date__gte=criteres['date_debut'])
+        if criteres.get('date_fin'):
+            resultats = resultats.filter(depart_initial__date__lte=criteres['date_fin'])
 
-        # 👉 2. RECHERCHE PAR TAILLE EXACTE DU VÉHICULE
+        # Filtres sur les escales
+        if criteres.get('escales_min') is not None or criteres.get('escales_max') is not None:
+            resultats = resultats.annotate(nb_segments=Count('segments'))
+            if criteres.get('escales_min') is not None:
+                # 1 escale = 2 segments
+                resultats = resultats.filter(nb_segments__gte=criteres['escales_min'] + 1)
+            if criteres.get('escales_max') is not None:
+                resultats = resultats.filter(nb_segments__lte=criteres['escales_max'] + 1)
+
+        # Filtres sur les places
         if criteres.get('places_total') is not None:
             resultats = resultats.filter(nombre_places_total=criteres['places_total'])
-
-        # 👉 3. LA SOUSTRACTION MAGIQUE (Places restantes)
+            
         if criteres.get('places_restantes_min') is not None:
+            # Soustraction : Capacité totale - billets vendus
             resultats = resultats.annotate(
+                places_occupees=Count('reservations__billets', filter=~Q(reservations__statut='ANNULE'))
+            ).annotate(
                 places_restantes=F('nombre_places_total') - F('places_occupees')
             ).filter(places_restantes__gte=criteres['places_restantes_min'])
+
+        # ==========================================
+        # 👉 NOUVEAU : LE FILTRE SUR LA DURÉE MAXIMALE
+        # ==========================================
+        duree_max = criteres.get('duree_max_minutes')
+        if duree_max is not None:
+            # On convertit le nombre de l'IA en véritable objet "Durée" pour Python
+            max_timedelta = datetime.timedelta(minutes=duree_max)
+            
+            # On demande à la base de données de faire la soustraction (Arrivée - Départ)
+            resultats = resultats.annotate(
+                duree_totale=ExpressionWrapper(
+                    F('arrivee_finale') - F('depart_initial'), 
+                    output_field=DurationField()
+                )
+            ).filter(duree_totale__lte=max_timedelta)
 
         return resultats.distinct()
     

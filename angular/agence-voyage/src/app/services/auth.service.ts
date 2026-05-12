@@ -18,7 +18,6 @@ export class AuthService {
   private router = inject(Router);
   private serveurService = inject(ServeurService);
 
-  // Initialisation avec sessionStorage au lieu de localStorage
   private currentUserSubject = new BehaviorSubject<LoginResponse | null>(this.getUserFromStorage());
   public currentUser$ = this.currentUserSubject.asObservable();
 
@@ -36,7 +35,6 @@ export class AuthService {
     const baseUrl = this.getBaseUrl();
     const backend = this.serveurService.getBackend();
 
-    // Gestion du slash de fin pour Django
     const loginUrl = backend === 'django' 
       ? `${baseUrl}/auth/login/` 
       : `${baseUrl}/auth/login`;
@@ -60,12 +58,13 @@ export class AuthService {
   }
 
   getUserId(): number {
-    // L'ID est récupéré depuis la session retournée par le serveur
     return Number(this.currentUserSubject.value?.utilisateurId) || 0;
   }
 
+  // 👉 CORRECTION MAJEURE ICI : On accepte les deux formats !
   isAdmin(): boolean {
-    return this.currentUserSubject.value?.role === 'ROLE_ADMIN';
+    const role = this.currentUserSubject.value?.role;
+    return role === 'ROLE_ADMIN' || role === 'ADMIN';
   }
 
   isLoggedIn(): boolean {
@@ -78,7 +77,6 @@ export class AuthService {
     return this.http.post(url, data);
   }
 
-  // Utilisé par le login.component pour sauvegarder la session après une connexion sociale (Google/Github)
   sauvegarderSession(token: string, role: string, email: string, utilisateurId: string) {
     const res: LoginResponse = { token, role, email, utilisateurId };
     sessionStorage.setItem('userSession', JSON.stringify(res));

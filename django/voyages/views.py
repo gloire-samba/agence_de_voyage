@@ -33,8 +33,26 @@ class UtilisateurViewSet(viewsets.ModelViewSet):
         return [EstProprietaireProfilOuAdmin()]
 
 class VoyageViewSet(viewsets.ModelViewSet):
-    queryset = Voyage.objects.all().order_by('id')
+    queryset = Voyage.objects.prefetch_related('segments', 'avis', 'reservations__billets').all().order_by('id')
     serializer_class = VoyageSerializer
+    
+    # 👉 CORRECTION : On utilise `create` au lieu de `perform_create` 
+    # pour récupérer `request.data` BRUT avant que Django n'efface les segments !
+    def create(self, request, *args, **kwargs):
+        voyage = VoyageService.creer(request.data)
+        serializer = self.get_serializer(voyage)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    # 👉 CORRECTION : Idem pour la modification
+    def update(self, request, *args, **kwargs):
+        voyage = VoyageService.modifier(kwargs.get('pk'), request.data)
+        serializer = self.get_serializer(voyage)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    # 👉 NOUVEAU : On force Django à utiliser notre Service pour la suppression
+    def destroy(self, request, *args, **kwargs):
+        VoyageService.supprimer(kwargs.get('pk'))
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 class SegmentViewSet(viewsets.ModelViewSet):
     queryset = Segment.objects.all().order_by('id')
@@ -175,14 +193,19 @@ def avis_vocal(request):
     except Reservation.DoesNotExist:
         return Response({"error": "Réservation introuvable"}, status=404)
 
+    # Transcription de l'audio en texte via ton service IA
     texte_avis = RechercheIntelligenteService.transcrire_audio(audio_file)
     
+    # 👉 LA CORRECTION EST ICI :
+    # On ajoute "_id" aux noms des clés pour que Django accepte les nombres
     avis_data = {
-        "voyage": voyage_id,
-        "utilisateur": request.user.id,
+        "voyage_id": voyage_id,          # <-- Ajout de _id
+        "utilisateur_id": request.user.id, # <-- Ajout de _id
         "note": note,
         "commentaire": texte_avis
     }
+    
+    # Appel au service pour créer l'entrée en base
     AvisService.creer(avis_data)
     
     return Response({"message": "Avis vocal enregistré !", "texte": texte_avis})

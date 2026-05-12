@@ -2,10 +2,11 @@ package com.agence.voyage.service;
 
 import com.agence.voyage.entity.Voyage;
 import com.agence.voyage.entity.Reservation;
+import com.agence.voyage.entity.Segment;
 import com.agence.voyage.repository.VoyageRepository;
 import com.agence.voyage.repository.ReservationRepository;
+import com.agence.voyage.repository.SegmentRepository; // 👉 NOUVEL IMPORT
 import lombok.RequiredArgsConstructor;
-import com.agence.voyage.entity.Segment;
 
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
@@ -15,16 +16,17 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Comparator;
+import java.util.ArrayList;
 
 @Service
 @RequiredArgsConstructor
 public class VoyageService {
 
     private final VoyageRepository voyageRepository;
-    private final ReservationRepository reservationRepository; // 👉 Ajout pour trouver les passagers
-    private final ReservationService reservationService; // 👉 Ajout pour déclencher le remboursement
+    private final ReservationRepository reservationRepository; 
+    private final ReservationService reservationService; 
+    private final SegmentRepository segmentRepository; // 👉 INJECTION ICI
 
-    // 👉 L'ALGORITHME QUI S'EXÉCUTE AU DÉMARRAGE DU SERVEUR
     @EventListener(ApplicationReadyEvent.class)
     @Transactional
     public void mettreAJourStatutsAuDemarrage() {
@@ -32,21 +34,17 @@ public class VoyageService {
         LocalDateTime maintenant = LocalDateTime.now();
 
         for (Voyage v : voyages) {
-            // On ne touche pas aux voyages que l'admin a explicitement annulés
             if ("ANNULE".equals(v.getStatut())) continue;
 
-            // S'il n'a pas encore de segments, il est forcément à venir
             if (v.getSegments() == null || v.getSegments().isEmpty()) {
                 v.setStatut("A_VENIR");
                 continue;
             }
 
-            // On trie les segments chronologiquement pour trouver le vrai début et la vraie fin
             v.getSegments().sort(Comparator.comparing(Segment::getHeureDepart));
             LocalDateTime departReel = v.getSegments().get(0).getHeureDepart();
             LocalDateTime arriveeReelle = v.getSegments().get(v.getSegments().size() - 1).getHeureArrivee();
 
-            // Application de ta règle métier :
             if (maintenant.isBefore(departReel)) {
                 v.setStatut("A_VENIR");
             } else if (maintenant.isAfter(arriveeReelle)) {
@@ -60,9 +58,27 @@ public class VoyageService {
         System.out.println("✅ Mise à jour automatique des statuts des voyages terminée.");
     }
 
-    // CREATE
+    // 👉 CREATE CORRIGÉ
+    @Transactional
     public Voyage creer(Voyage voyage) {
-        return voyageRepository.save(voyage);
+        // 1. On met les segments de côté
+        List<Segment> segmentsMembres = voyage.getSegments();
+        voyage.setSegments(null); 
+        
+        // 2. On sauvegarde le voyage seul pour qu'il obtienne un ID en base
+        Voyage voyageSauvegarde = voyageRepository.save(voyage);
+
+        // 3. On rattache chaque segment à son papa (le voyage) et on sauvegarde
+        if (segmentsMembres != null && !segmentsMembres.isEmpty()) {
+            List<Segment> segmentsSauvegardes = new ArrayList<>();
+            for (Segment s : segmentsMembres) {
+                s.setVoyage(voyageSauvegarde); // Lien de parenté obligatoire pour Hibernate !
+                segmentsSauvegardes.add(segmentRepository.save(s));
+            }
+            voyageSauvegarde.setSegments(segmentsSauvegardes);
+        }
+        
+        return voyageSauvegarde;
     }
 
     // READ
@@ -75,12 +91,11 @@ public class VoyageService {
                 .orElseThrow(() -> new RuntimeException("Voyage non trouvé avec l'id : " + id));
     }
 
-    // UPDATE
-    @Transactional // 👉 Important d'ajouter Transactional ici car on modifie plusieurs choses
+    // 👉 UPDATE CORRIGÉ
+    @Transactional 
     public Voyage modifier(Long id, Voyage voyageDetails) {
         Voyage voyage = recupererParId(id);
 
-        // 👉 DÉTECTION DE L'ANNULATION PAR L'ADMIN
         boolean passageEnAnnule = voyageDetails.getStatut() != null 
             && voyageDetails.getStatut().equals("ANNULE") 
             && !voyage.getStatut().equals("ANNULE");
@@ -88,25 +103,37 @@ public class VoyageService {
         voyage.setVilleDepart(voyageDetails.getVilleDepart());
         voyage.setVilleArrivee(voyageDetails.getVilleArrivee());
         voyage.setPrixTotal(voyageDetails.getPrixTotal());
+        voyage.setNombrePlacesTotal(voyageDetails.getNombrePlacesTotal()); // 👉 Correction : on n'oublie plus la capacité !
         
         if (voyageDetails.getStatut() != null) {
             voyage.setStatut(voyageDetails.getStatut());
         }
 
+        // 👉 GESTION DES NOUVEAUX SEGMENTS 
+        if (voyageDetails.getSegments() != null) {
+            // On supprime les anciens segments
+            if (voyage.getSegments() != null && !voyage.getSegments().isEmpty()) {
+                segmentRepository.deleteAll(voyage.getSegments());
+                voyage.getSegments().clear();
+            }
+            
+            // On enregistre les nouveaux
+            for (Segment s : voyageDetails.getSegments()) {
+                s.setVoyage(voyage);
+                segmentRepository.save(s);
+                voyage.getSegments().add(s);
+            }
+        }
+
         Voyage voyageSauvegarde = voyageRepository.save(voyage);
 
-        // 👉 LA BOUCLE MAGIQUE DE REMBOURSEMENT MASSIF
+        // LA BOUCLE DE REMBOURSEMENT (inchangée)
         if (passageEnAnnule) {
             System.out.println("⚠️ Voyage #" + id + " annulé par l'admin. Déclenchement du remboursement de masse...");
-            
-            // 1. On récupère tous les billets rattachés à ce voyage
             List<Reservation> reservations = reservationRepository.findByVoyageId(id);
-            
             for (Reservation res : reservations) {
-                // On ignore ceux qui sont déjà annulés
                 if (!res.getStatut().equals("ANNULE")) {
                     try {
-                        // 2. On utilise notre méthode de réservation qui gère déjà Stripe + Email !
                         reservationService.annuler(res.getId());
                         System.out.println("✅ Client " + res.getUtilisateur().getEmail() + " remboursé.");
                     } catch (Exception e) {

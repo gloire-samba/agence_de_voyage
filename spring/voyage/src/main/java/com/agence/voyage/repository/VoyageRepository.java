@@ -19,7 +19,7 @@ public interface VoyageRepository extends JpaRepository<Voyage, Long> {
     @Query("SELECT DISTINCT v FROM Voyage v LEFT JOIN v.segments s WHERE " +
            "(s.ordre = 1) AND " + 
            "(:statut IS NULL OR UPPER(v.statut) = UPPER(:statut)) AND " +
-           // 👉 CORRECTION : On exige un départ dans le futur SEULEMENT SI le statut n'est pas précisé
+           // On exige un départ dans le futur SEULEMENT SI le statut n'est pas précisé
            "(:statut IS NOT NULL OR s.heureDepart >= CURRENT_TIMESTAMP) AND " +
            "(:depart IS NULL OR LOWER(v.villeDepart) LIKE :depart) AND " +
            "(:arrivee IS NULL OR LOWER(v.villeArrivee) LIKE :arrivee) AND " +
@@ -29,14 +29,15 @@ public interface VoyageRepository extends JpaRepository<Voyage, Long> {
            "(:minSegments IS NULL OR SIZE(v.segments) >= :minSegments) AND " +
            "(:dateDebut IS NULL OR CAST(s.heureDepart AS string) >= :dateDebut) AND " +
            "(:dateFin IS NULL OR CAST(s.heureDepart AS string) <= :dateFin) AND " +
-           
-           // 👉 NOUVEAU 1 : Filtre sur la taille totale du véhicule
+           // Filtre sur la taille totale du véhicule
            "(:placesTotal IS NULL OR v.nombrePlacesTotal = :placesTotal) AND " +
-           
-           // 👉 NOUVEAU 2 : LA SOUSTRACTION MAGIQUE ! 
            // Capacité - Nombre de billets non annulés >= ce que l'utilisateur demande
            "(:placesRestantesMin IS NULL OR " +
-           "(v.nombrePlacesTotal - (SELECT COUNT(b) FROM Billet b WHERE b.reservation.voyage = v AND b.reservation.statut != 'ANNULE')) >= :placesRestantesMin)")
+           "(v.nombrePlacesTotal - (SELECT COUNT(b) FROM Billet b WHERE b.reservation.voyage = v AND b.reservation.statut != 'ANNULE')) >= :placesRestantesMin) AND " +
+           // Filtre sur la durée (en minutes)
+           "(:dureeMaxMinutes IS NULL OR " +
+           "(SELECT DATEDIFF(MINUTE, MIN(s2.heureDepart), MAX(s3.heureArrivee)) " +
+           " FROM Segment s2, Segment s3 WHERE s2.voyage = v AND s3.voyage = v) <= :dureeMaxMinutes)")
        
     List<Voyage> rechercherParCriteresFuzzy(
             @Param("depart") String depart, 
@@ -48,7 +49,8 @@ public interface VoyageRepository extends JpaRepository<Voyage, Long> {
             @Param("dateDebut") String dateDebut,
             @Param("dateFin") String dateFin,
             @Param("statut") String statut,
-            @Param("placesTotal") Integer placesTotal, // NOUVEAU
-            @Param("placesRestantesMin") Integer placesRestantesMin // NOUVEAU
-       );
+            @Param("placesTotal") Integer placesTotal,
+            @Param("placesRestantesMin") Integer placesRestantesMin,
+            @Param("dureeMaxMinutes") Integer dureeMaxMinutes
+    );
 }

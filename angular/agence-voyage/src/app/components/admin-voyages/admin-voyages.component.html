@@ -5,9 +5,53 @@
     <button class="btn-add" (click)="allerVersFormulaire()">+ Nouveau Voyage</button>
   </div>
 
-  <div class="toolbar" style="margin-bottom: 20px;">
-    <input type="text" [(ngModel)]="texteRecherche" placeholder="Rechercher par ID, Ville ou Statut..." 
-           style="width: 100%; max-width: 400px; padding: 10px; border-radius: 6px; border: 1px solid #cbd5e1; outline: none;">
+  <div class="filter-row">
+    <div class="filter-group">
+      <label>Ville de Départ</label>
+      <input type="text" [(ngModel)]="filtreDepart" placeholder="Ex: Paris...">
+    </div>
+    <div class="filter-group">
+      <label>Ville d'Arrivée</label>
+      <input type="text" [(ngModel)]="filtreArrivee" placeholder="Ex: Lyon...">
+    </div>
+    <div class="filter-group">
+      <label>Date du départ</label>
+      <input type="date" [(ngModel)]="filtreDate">
+    </div>
+    
+    <div class="filter-group">
+      <label>Statut</label>
+      <select [(ngModel)]="filtreStatut">
+        <option value="">Tous</option>
+        <option value="A_VENIR">À venir</option>
+        <option value="EN_COURS">En cours</option>
+        <option value="TERMINE">Terminé</option>
+        <option value="ANNULE">Annulé</option>
+      </select>
+    </div>
+
+    <div class="filter-group">
+      <label>Durée Max (h)</label>
+      <input type="number" [(ngModel)]="filtreDureeMax" placeholder="Ex: 12">
+    </div>
+    
+    <div class="filter-group">
+      <label>Nb Escales (Exact)</label>
+      <input type="number" [(ngModel)]="filtreEscales" placeholder="Ex: 0">
+    </div>
+    <div class="filter-group">
+      <label>Note min. (⭐)</label>
+      <input type="number" [(ngModel)]="filtreNoteMin" placeholder="Ex: 4">
+    </div>
+    <div class="filter-group">
+      <label>Durée exacte (h)</label>
+      <input type="number" [(ngModel)]="filtreDureeExacte" placeholder="Ex: 2">
+    </div>
+
+    <div class="filter-group">
+      <label>Recherche Rapide</label>
+      <input type="text" [(ngModel)]="texteRecherche" placeholder="ID, Statut...">
+    </div>
   </div>
   
   <table class="admin-table">
@@ -15,6 +59,7 @@
       <tr>
         <th (click)="changerTri('id')" style="cursor: pointer;" title="Trier par ID">ID ↕️</th>
         <th (click)="changerTri('villeDepart')" style="cursor: pointer;" title="Trier par destination">Itinéraire ↕️</th>
+        <th (click)="changerTri('duree')" style="cursor: pointer;" title="Trier par durée">Durée ↕️</th>
         <th (click)="changerTri('prixTotal')" style="cursor: pointer;" title="Trier par prix">Prix ↕️</th>
         <th (click)="changerTri('statut')" style="cursor: pointer;" title="Trier par statut">Statut ↕️</th>
         <th>Actions Administrateur</th>
@@ -25,6 +70,7 @@
         <tr>
           <td><strong>#{{ v.id }}</strong></td>
           <td>{{ v.villeDepart || v.ville_depart }} ➔ {{ v.villeArrivee || v.ville_arrivee }}</td>
+          <td><strong>{{ getDureeFormattee(v) }}</strong></td>
           <td>{{ v.prixTotal || v.prix_total }} €</td>
           <td>
             <span class="badge-statut" [ngClass]="v.statut || 'A_VENIR'">
@@ -41,8 +87,8 @@
       
       @if (voyagesFiltres.length === 0) {
         <tr>
-          <td colspan="5" style="text-align: center; color: #94a3b8; padding: 25px;">
-            Aucun voyage ne correspond à votre recherche.
+          <td colspan="6" style="text-align: center; color: #94a3b8; padding: 25px;">
+            Aucun voyage ne correspond à vos critères.
           </td>
         </tr>
       }

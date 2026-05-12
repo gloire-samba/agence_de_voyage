@@ -1,7 +1,6 @@
 <div class="catalogue-wrapper">
   
   @if (voyages.length === 0) {
-    <!-- État vide (Aucun résultat) -->
     <div class="empty-state">
       <div class="icon">🌍</div>
       <h3>Prêt à décoller ?</h3>
@@ -9,7 +8,6 @@
     </div>
   } @else {
 
-    <!-- 👉 NOUVEAU : LA BARRE DE TRI -->
     <div class="catalogue-header">
       <div class="resultats-compte">
         {{ voyages.length }} voyage(s) trouvé(s)
@@ -22,6 +20,8 @@
           <option value="prix_desc">💰 Prix : Décroissant</option>
           <option value="date_asc">📅 Date : Du plus proche au plus lointain</option>
           <option value="date_desc">📅 Date : Du plus lointain au plus proche</option>
+          <option value="duree_asc">⏳ Durée : Du plus court au plus long</option>
+          <option value="duree_desc">⏳ Durée : Du plus long au plus court</option>
           <option value="escales_asc">✈️ Trajet : Du plus direct au plus long</option>
           <option value="escales_desc">✈️ Trajet : Du plus long au plus direct</option>
           <option value="note_desc">⭐ Note : Les mieux notés en premier</option>
@@ -30,158 +30,138 @@
       </div>
     </div>
 
-    <!-- La Grille des Voyages -->
     <div class="voyages-grid">
-      @for (voyage of voyages; track voyage.id) {
+      @for (v of voyages; track v.id) {
         <div class="voyage-card">
           
-          <!-- En-tête de la carte -->
           <div class="card-header">
-            <div class="trajet">
-              <span class="ville">{{ getVilleDepart(voyage) }}</span>
+            <div class="trajet-villes">
+              <span class="ville">{{ getVilleDepart(v) }}</span>
               <span class="fleche">➔</span>
-              <span class="ville">{{ getVilleArrivee(voyage) }}</span>
-            </div>
-            <div class="prix">
-              {{ getPrix(voyage) | currency:'EUR':'symbol':'1.0-0' }}
-            </div>
-          </div>
-
-          <!-- Corps de la carte (Détails) -->
-          <div class="card-body">
-            <div class="info-ligne">
-              <span class="label">📅 Départ :</span>
-              <span class="valeur">{{ getDateDepart(voyage) | date:'dd MMM yyyy à HH:mm' }}</span>
+              <span class="ville">{{ getVilleArrivee(v) }}</span>
             </div>
             
-            <div class="info-ligne">
-              <span class="label">🎟️ Disponibilité :</span>
-              <span class="valeur badge-place" [class.dernieres-places]="getPlacesRestantes(voyage) <= 5">
-                {{ getPlacesRestantes(voyage) }} places restantes (sur {{ getCapaciteTotale(voyage) }})
-              </span>
+            <button class="btn-avis" (click)="ouvrirModal('AVIS', v)" title="Voir les avis">
+              ⭐ {{ getNoteMoyenne(v) }} ({{ getNombreAvis(v) }} avis)
+            </button>
+          </div>
+
+          <div class="card-body">
+            <div class="voyage-info">
+              <p class="info-item">
+                📅 Départ : <strong>{{ getDateDepart(v) | date:'dd MMM yyyy à HH:mm' }}</strong>
+              </p>
+              
+              <p class="info-item" style="display: flex; align-items: center; gap: 8px;">
+                ✈️ Trajet : 
+                @if (getNbEscales(v) === 0) {
+                  <span class="badge-direct" (click)="ouvrirModal('SEGMENTS', v)">Direct</span>
+                } @else {
+                  <button class="badge-escales" (click)="ouvrirModal('SEGMENTS', v)">{{ getNbEscales(v) }} escale(s)</button>
+                }
+              </p>
+              
+              <p class="info-item">
+                ⏱️ Durée : <strong>{{ getDureeFormattee(v) }}</strong>
+              </p>
             </div>
 
-            <div class="info-ligne">
-              <span class="label">✈️ Trajet :</span>
-              <button class="valeur badge btn-badge" [class.direct]="getNbEscales(voyage) === 0" (click)="ouvrirModal('SEGMENTS', voyage)" title="Voir les détails du trajet">
-                @if (getNbEscales(voyage) === 0) { Vol direct 👁️ } @else if (getNbEscales(voyage) === 1) { 1 escale 👁️ } @else { {{ getNbEscales(voyage) }} escales 👁️ }
-              </button>
-            </div>
-
-            <div class="info-ligne">
-              <span class="label">⭐ Avis :</span>
-              <button class="valeur btn-badge-outline" (click)="ouvrirModal('AVIS', voyage)" title="Lire les avis">
-                {{ getNoteMoyenne(voyage) }}/5 ({{ getNombreAvis(voyage) }} avis) 👁️
-              </button>
-            </div>
-
-            <div class="info-ligne">
-              <span class="label">📌 Statut :</span>
-              <span class="valeur badge" 
-                    [class.confirme]="getStatut(voyage) === 'A_VENIR'"
-                    [class.annule]="getStatut(voyage) === 'ANNULE' || getStatut(voyage) === 'TERMINE' || getStatut(voyage) === 'COMPLET'">
-                {{ getStatut(voyage) }}
-              </span>
+            <div class="prix-block">
+              <span class="prix-label">À partir de </span>
+              <span class="prix-valeur">{{ getPrix(v) }} €</span>
             </div>
           </div>
 
-          <!-- Pied de la carte -->
           <div class="card-footer">
-            @if (getStatut(voyage) === 'ANNULE' || getStatut(voyage) === 'COMPLET' || getPlacesRestantes(voyage) === 0) {
-              <div class="btn-indisponible">
-                🚫 Vol {{ getStatut(voyage) }}
-              </div>
-            } @else {
+            <div class="places-infos">
+              @if (getPlacesDisponibles(v) <= 5) {
+                <span class="badge-place dernieres-places">🔥 Plus que {{ getPlacesDisponibles(v) }} place(s) !</span>
+              } @else {
+                <span class="badge-place">🟢 {{ getPlacesDisponibles(v) }} places dispo</span>
+              }
+            </div>
+
+            <div class="reservation-actions">
               
-              <div class="reservation-actions">
-                <div class="compteur-places">
-                  <button (click)="decrementerPlace(voyage)" [disabled]="placesSelectionnees[voyage.id] <= 1">-</button>
-                  <span>{{ placesSelectionnees[voyage.id] }}</span>
-                  <button (click)="incrementerPlace(voyage)" [disabled]="placesSelectionnees[voyage.id] >= getPlacesRestantes(voyage)">+</button>
-                </div>
+              <div class="compteur-places">
+                <button class="btn-compteur" 
+                        (click)="decrementerPlace(v)" 
+                        [disabled]="(placesSelectionnees[v.id] || 1) <= 1">
+                  -
+                </button>
                 
-                <button class="btn-reserver" (click)="onReserver(voyage)">
-                  Réserver ({{ getPrix(voyage) * placesSelectionnees[voyage.id] | currency:'EUR':'symbol':'1.0-0' }})
+                <span class="valeur-compteur">{{ placesSelectionnees[v.id] || 1 }}</span>
+                
+                <button class="btn-compteur" 
+                        (click)="incrementerPlace(v)" 
+                        [disabled]="(placesSelectionnees[v.id] || 1) >= getPlacesDisponibles(v)">
+                  +
                 </button>
               </div>
+              
+              <button class="btn-reserver" (click)="onReserver(v)">
+                Réserver
+              </button>
+            </div>
 
-            }
           </div>
-
         </div>
       }
     </div>
+
+    @if (modalActive) {
+      <div class="modal-overlay" (click)="fermerModal()">
+        <div class="modal-content" (click)="$event.stopPropagation()">
+          
+          <div class="modal-header">
+            <h3>{{ modalActive === 'SEGMENTS' ? "Détails de l'itinéraire" : "Avis des voyageurs" }}</h3>
+            <button class="btn-close" (click)="fermerModal()">✖</button>
+          </div>
+
+          @if (modalActive === 'SEGMENTS') {
+            <div class="segments-list">
+              @for (segment of voyageSelectionne!.segments; track segment.id; let isLast = $last) {
+                <div class="segment-item">
+                  <div class="segment-icon">📍</div>
+                  <div class="segment-details">
+                    <strong>{{ segment.villeDepart || segment.ville_depart }} ➔ {{ segment.villeArrivee || segment.ville_arrivee }}</strong>
+                    <div class="segment-dates">
+                      Départ : {{ (segment.heureDepart || segment.heure_depart) | date:'dd/MM/yyyy HH:mm' }} <br>
+                      Arrivée : {{ (segment.heureArrivee || segment.heure_arrivee) | date:'dd/MM/yyyy HH:mm' }}
+                    </div>
+                  </div>
+                </div>
+              }
+            </div>
+          }
+
+          @if (modalActive === 'AVIS') {
+            @if (getNombreAvis(voyageSelectionne!) === 0) {
+              <div class="alert-info">Aucun avis n'a encore été laissé pour ce voyage.</div>
+            }
+            
+            <div class="avis-list">
+              @for (avis of voyageSelectionne!.avis; track avis.id) {
+                <div class="avis-card">
+                  <div class="avis-header">
+                    <span class="avis-auteur">{{ avis.utilisateur?.email || avis.email_auteur || 'Utilisateur anonyme' }}</span>
+                    <span class="avis-date">{{ (avis.dateCreation || avis.date_creation) | date:'dd/MM/yyyy' }}</span>
+                  </div>
+                  <div class="avis-note">
+                    @for (star of [1,2,3,4,5]; track star) {
+                      <span [style.color]="star <= avis.note ? '#f59e0b' : '#e2e8f0'">★</span>
+                    }
+                  </div>
+                  <div class="avis-commentaire">
+                    {{ avis.commentaire || 'Aucun commentaire texte.' }}
+                  </div>
+                </div>
+              }
+            </div>
+          }
+
+        </div>
+      </div>
+    }
   }
-
 </div>
-
-<!-- ========================================== -->
-<!-- ZONES DES MODALES DE CONSULTATION          -->
-<!-- ========================================== -->
-
-@if (modalActive) {
-  <div class="modal-overlay" (click)="fermerModal()">
-    <div class="modal-content" (click)="$event.stopPropagation()">
-      
-      <div class="modal-header">
-        <h3>
-          {{ modalActive === 'SEGMENTS' ? 'Détails du trajet' : 'Avis des voyageurs' }}
-        </h3>
-        <button class="btn-close" (click)="fermerModal()">✖</button>
-      </div>
-
-      <div class="modal-body">
-        
-        <!-- AFFICHAGE DES ESCALES -->
-        @if (modalActive === 'SEGMENTS') {
-          @if (getNbEscales(voyageSelectionne!) === 0) {
-            <div class="alert-info">Ce voyage est un trajet direct, sans aucune escale.</div>
-          }
-          
-          <div class="timeline">
-            @for (segment of voyageSelectionne!.segments; track segment.id) {
-              <div class="timeline-item">
-                <div class="segment-villes">
-                  <strong>{{ segment.villeDepart || segment.ville_depart }}</strong> 
-                  ➔ 
-                  <strong>{{ segment.villeArrivee || segment.ville_arrivee }}</strong>
-                </div>
-                <div class="segment-dates">
-                  Départ : {{ (segment.heureDepart || segment.heure_depart) | date:'dd/MM/yyyy HH:mm' }} <br>
-                  Arrivée : {{ (segment.heureArrivee || segment.heure_arrivee) | date:'dd/MM/yyyy HH:mm' }}
-                </div>
-              </div>
-            }
-          </div>
-        }
-
-        <!-- AFFICHAGE DES AVIS -->
-        @if (modalActive === 'AVIS') {
-          @if (getNombreAvis(voyageSelectionne!) === 0) {
-            <div class="alert-info">Aucun avis n'a encore été laissé pour ce voyage.</div>
-          }
-          
-          <div class="avis-list">
-            @for (avis of voyageSelectionne!.avis; track avis.id) {
-              <div class="avis-card">
-                <div class="avis-header">
-                  <span class="avis-auteur">{{ avis.utilisateur?.email || 'Utilisateur anonyme' }}</span>
-                  <span class="avis-date">{{ (avis.dateCreation || avis.date_creation) | date:'dd/MM/yyyy' }}</span>
-                </div>
-                <div class="avis-note">
-                  @for (star of [1,2,3,4,5]; track star) {
-                    <span [style.color]="star <= avis.note ? '#f59e0b' : '#e2e8f0'">★</span>
-                  }
-                </div>
-                <div class="avis-commentaire">
-                  {{ avis.commentaire || 'Aucun commentaire texte.' }}
-                </div>
-              </div>
-            }
-          </div>
-        }
-
-      </div>
-    </div>
-  </div>
-}

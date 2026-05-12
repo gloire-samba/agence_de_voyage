@@ -23,17 +23,17 @@ export const routes: Routes = [
   { path: 'login', component: LoginComponent },
   { path: 'inscription', component: InscriptionComponent },
   
-  // 🔒 On verrouille l'accès aux visiteur normaux
   { path: 'recherche', component: RechercheComponent, canActivate: [authGuard] },
   { path: 'historique', component: HistoriqueComponent, canActivate: [authGuard] },
   { path: 'profil', component: ProfilComponent, canActivate: [authGuard] },
   { path: 'paiement/:reservationId/:prix', component: PaiementComponent, canActivate: [authGuard] },
-  // 👉 NOUVELLE ROUTE POUR LE MOT DE PASSE OUBLIÉ (Accessible sans être connecté)
   { path: 'password-reset', component: PasswordResetComponent },
   
+  // 👉 CORRECTION ICI : Les gardes de sécurité remis en place !
   { 
     path: 'admin', 
     component: AdminDashboardComponent, 
+    canActivate: [authGuard, adminGuard], 
     children: [
       { path: '', redirectTo: 'voyages', pathMatch: 'full' },
       { path: 'voyages', component: AdminVoyagesComponent },
@@ -43,9 +43,7 @@ export const routes: Routes = [
       { path: 'utilisateurs/:id/avis', component: AdminUtilisateurAvisComponent },
       { path: 'voyages/:id/avis', component: AdminVoyageAvisComponent },
       { path: 'utilisateurs/:id/modifier', component: AdminUtilisateurFormComponent },
-      // 👉 NOUVELLE ROUTE DE L'ÉTAPE D
       { path: 'utilisateurs/:id/reservations', component: AdminUtilisateurReservationsComponent },
-      // 👉 NOUVELLE ROUTE : Recherche de passager par siège
       { path: 'recherche-place', component: AdminRecherchePlaceComponent }
     ]
   },

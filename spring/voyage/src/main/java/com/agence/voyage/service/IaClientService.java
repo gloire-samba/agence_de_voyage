@@ -95,7 +95,8 @@ public class IaClientService {
                 criteres.getDateFin(),
                 criteres.getStatut(),
                 criteres.getPlacesTotal(), // NOUVEAU
-                criteres.getPlacesRestantesMin() // NOUVEAU 
+                criteres.getPlacesRestantesMin(), // NOUVEAU 
+                criteres.getDureeMaxMinutes() // 👉 Ajout de l'argument
         );
 
         if (resultats.isEmpty()) {
@@ -164,5 +165,8 @@ public class IaClientService {
         
         @JsonProperty("places_restantes_min")
         private Integer placesRestantesMin;
+
+        @JsonProperty("duree_max_minutes")
+        private Integer dureeMaxMinutes; // 👉 Récupère la valeur calculée par l'IA
     }
 }

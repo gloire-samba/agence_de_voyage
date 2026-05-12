@@ -46,6 +46,7 @@ class CriteresExtraits(BaseModel):
     # 👉 NOUVEAU : On apprend à l'IA à chercher ces données
     places_total: Optional[int] = None
     places_restantes_min: Optional[int] = None
+    duree_max_minutes: Optional[int] = None # 👉 NOUVEAU : Durée totale en minutes
 
 # --- GESTIONNAIRE D'ERREURS HUMAINE ---
 def gerer_erreur_gemini(e: Exception):
@@ -116,11 +117,14 @@ async def analyser_demande(requete: RequeteUtilisateur):
     Règles absolues :
     - "ville_depart" / "ville_arrivee" : Chaîne ou null.
     - "prix_min" / "prix_max" : Nombres entiers.
-    - "date_debut" / "date_fin" : Dates "YYYY-MM-DD" (année {annee_actuelle}).
-    - "escales_min" / "escales_max" : Nombres entiers.
+    - "date_debut" / "date_fin" : Dates "YYYY-MM-DD".
     - "statut" : "A_VENIR", "EN_COURS", "TERMINE", "ANNULE" ou null.
-    - "places_total" : Si l'utilisateur demande un avion/voyage d'une taille précise (ex: "un avion de 40 places"), mets ce nombre entier. Sinon null.
-    - "places_restantes_min" : Si l'utilisateur demande des places libres (ex: "pour 4 personnes", "au moins 2 places", "je veux réserver 3 places"), mets ce nombre entier. Sinon null.
+    - "places_total" / "places_restantes_min" : Nombres entiers ou null.
+    
+    👉 NOUVELLE RÈGLE :
+    - "duree_max_minutes" : Si l'utilisateur exprime une durée maximale (ex: "moins de 3h", "maximum 2 jours", "voyage de 1h"), 
+      convertis TOUT en minutes. 
+      Exemple : "3h" -> 180, "1 jour" -> 1440, "2 jours et 2h" -> 3000. Sinon null.
     
     Ne renvoie ABSOLUMENT RIEN d'autre que le JSON valide.
     """

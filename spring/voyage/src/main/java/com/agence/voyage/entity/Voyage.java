@@ -53,7 +53,7 @@ public class Voyage {
     private String statut = "A_VENIR"; // "A_VENIR", "EN_COURS", "TERMINE"
 
     // 👉 NOUVEAU
-    private int nombrePlacesTotal;
+    private Integer nombrePlacesTotal;
 
 
     // Relation bidirectionnelle : un voyage contient plusieurs segments

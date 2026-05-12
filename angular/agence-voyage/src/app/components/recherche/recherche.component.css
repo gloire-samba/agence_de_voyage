@@ -18,7 +18,7 @@ h2 {
 
 .search-panel {
   display: flex;
-  flex-direction: column; /* 👈 Bascule de la ligne vers la colonne */
+  flex-direction: column; 
   align-items: center;
   justify-content: space-between;
   gap: 20px;
@@ -34,6 +34,7 @@ h2 {
   align-items: flex-end;
   gap: 15px;
   flex: 1;
+  flex-wrap: wrap; 
 }
 
 .input-group {
@@ -77,7 +78,7 @@ h2 {
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 3px; /* Alignement visuel avec les inputs */
+  margin-bottom: 3px; 
   transition: all 0.2s;
 }
 
@@ -116,8 +117,8 @@ h2 {
 
 .divider::before, .divider::after {
   content: '';
-  flex: 1; /* Permet à la ligne de s'étirer horizontalement */
-  height: 1px; /* Ligne fine de 1 pixel de haut */
+  flex: 1; 
+  height: 1px; 
   background: #cbd5e1;
   margin: 0 15px;
 }
@@ -127,8 +128,9 @@ h2 {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  min-width: 120px;
+  width: 100%;
+  max-width: 450px;
+  margin: 0 auto;
 }
 
 .ia-label {
@@ -185,16 +187,6 @@ h2 {
 
 .success-msg { color: #059669; }
 .error-msg { color: #ef4444; font-weight: bold; }
-
-/* 👈 Centre la zone IA en bas */
-.ia-search-zone {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  width: 100%;
-  max-width: 450px;
-  margin: 0 auto;
-}
 
 .ia-text-box {
   display: flex;
@@ -255,44 +247,3 @@ h2 {
   color: #334155;
   margin-bottom: 10px;
 }
-
-/* --- Navbar --- */
-.top-navbar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background-color: #ffffff;
-  padding: 15px 30px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-  margin-bottom: 30px;
-}
-
-.nav-brand {
-  font-size: 20px;
-  font-weight: bold;
-  color: #1e293b;
-}
-
-.nav-actions {
-  display: flex;
-  gap: 15px;
-}
-
-.btn-nav {
-  padding: 8px 15px;
-  border: none;
-  border-radius: 6px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: 0.2s;
-  background-color: #f1f5f9;
-  color: #334155;
-}
-
-.btn-nav:hover { background-color: #e2e8f0; }
-
-.btn-admin-nav { background-color: #0f172a; color: white; }
-.btn-admin-nav:hover { background-color: #1e293b; }
-
-.btn-logout { background-color: #fee2e2; color: #ef4444; }
-.btn-logout:hover { background-color: #fca5a5; }

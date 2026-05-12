@@ -81,6 +81,7 @@ textarea {
   resize: vertical;
   font-family: inherit;
   outline: none;
+  box-sizing: border-box; /* 👉 CORRECTION : Empêche de dépasser du cadre droit ! */
 }
 textarea:focus { border-color: #3b82f6; }
 

@@ -79,7 +79,7 @@ export class HistoriqueComponent implements OnInit {
 
   annulerReservation(id: number | undefined) {
     if (!id) return;
-    if (confirm('Êtes-vous sûr de vouloir annuler cette réservation ?')) {
+    if (confirm('Êtes-vous sûr de vouloir annuler cette réservation ? Un remboursement automatique sera déclenché.')) {
       this.reservationService.annulerReservation(id).subscribe({
         next: () => this.chargerHistorique(),
         error: () => alert('Une erreur est survenue lors de l\'annulation.')
@@ -90,31 +90,6 @@ export class HistoriqueComponent implements OnInit {
   getStatutVoyage(reservation: Reservation): string {
     const v = this.getVoyage(reservation);
     return v.statut || 'A_VENIR';
-  }
-
-  demanderRemboursement(res: Reservation) {
-    if (!res.id) return;
-    const confirmation = confirm(`Voulez-vous demander un remboursement intégral de ${this.getPrixPaye(res)}€ directement sur la carte utilisée lors du paiement ?`);
-    if (confirmation) {
-      this.isLoading = true;
-      this.cdr.detectChanges();
-      this.reservationService.annulerReservation(res.id).subscribe({
-        next: () => {
-          alert("✅ Remboursement Stripe validé avec succès ! L'argent apparaîtra sur votre compte sous 3 à 5 jours.");
-          this.chargerHistorique(); 
-        },
-        error: (err) => {
-          this.isLoading = false;
-          alert("❌ Erreur lors du traitement du remboursement avec la banque.");
-          this.cdr.detectChanges();
-        }
-      });
-    }
-  }
-
-  echangerBillet(res: Reservation) {
-    alert(`Votre avoir de ${this.getPrixPaye(res)}€ est enregistré ! Vous allez être redirigé vers le catalogue pour choisir un nouveau vol.`);
-    this.router.navigate(['/recherche']);
   }
 
   // ==========================================

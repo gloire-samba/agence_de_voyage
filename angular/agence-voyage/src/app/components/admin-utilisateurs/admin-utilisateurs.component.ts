@@ -1,5 +1,5 @@
 import { Component, OnInit, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { CommonModule, DatePipe } from '@angular/common'; // Injection DatePipe pour le HTML
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { UtilisateurService } from '../../services/utilisateur.service';
@@ -20,8 +20,12 @@ export class AdminUtilisateursComponent implements OnInit {
   utilisateurs: any[] = [];
   idAdminActuel = this.authService.getUserId();
 
-  // Outils de filtrage et tri
+  // 👉 NOUVEAUX OUTILS DE FILTRAGE
   texteRecherche: string = '';
+  filtreEmail: string = '';
+  filtreRole: string = '';
+  filtreDateInscription: string = '';
+
   critereTri: string = 'id';
   triAscendant: boolean = true;
 
@@ -32,14 +36,8 @@ export class AdminUtilisateursComponent implements OnInit {
   chargerUtilisateurs() {
     this.utilisateurService.getTous().subscribe({
       next: (data: any) => {
-        // 👉 LA CORRECTION EST ICI : Le "déballage" intelligent
-        // On cherche le tableau là où il est caché (Django = results, Spring = content ou _embedded)
         const donneesBrutes = data?.results || data?.content || data?._embedded?.utilisateurs || data;
-        
-        // On s'assure que c'est bien un tableau pour éviter les crashs
         const listeComplete = Array.isArray(donneesBrutes) ? donneesBrutes : [];
-        
-        // On exclut l'admin actuel pour éviter qu'il ne se supprime lui-même
         this.utilisateurs = listeComplete.filter((u: any) => u.id !== this.idAdminActuel);
       },
       error: (err) => console.error("Erreur chargement utilisateurs", err)
@@ -49,25 +47,16 @@ export class AdminUtilisateursComponent implements OnInit {
   supprimerUtilisateur(id: number) {
     if (confirm("⚠️ Bannir définitivement cet utilisateur de la plateforme ? (Cette action détruira ses données non-liées).")) {
       this.utilisateurService.supprimer(id).subscribe({
-        next: () => {
-          alert('✅ Utilisateur supprimé.');
-          this.chargerUtilisateurs();
-        },
+        next: () => { alert('✅ Utilisateur supprimé.'); this.chargerUtilisateurs(); },
         error: () => alert("❌ Impossible de supprimer cet utilisateur (il a peut-être des réservations en cours).")
       });
     }
   }
 
-  // Navigations via les Routes
-  voirAvisUtilisateur(id: number) {
-    this.router.navigate(['/admin/utilisateurs', id, 'avis']);
-  }
+  voirAvisUtilisateur(id: number) { this.router.navigate(['/admin/utilisateurs', id, 'avis']); }
+  voirReservationsUtilisateur(id: number) { this.router.navigate(['/admin/utilisateurs', id, 'reservations']); }
+  modifierUtilisateur(id: number) { this.router.navigate(['/admin/utilisateurs', id, 'modifier']); }
 
-  voirReservationsUtilisateur(id: number) {
-    this.router.navigate(['/admin/utilisateurs', id, 'reservations']);
-  }
-
-  // Système de Tri
   changerTri(critere: string) {
     if (this.critereTri === critere) {
       this.triAscendant = !this.triAscendant;
@@ -77,31 +66,43 @@ export class AdminUtilisateursComponent implements OnInit {
     }
   }
 
-  // Filtrage et Tri en direct
+  // 👉 LA NOUVELLE LOGIQUE DE FILTRAGE
   get utilisateursFiltres() {
     let resultats = this.utilisateurs.filter(u => {
-      const recherche = this.texteRecherche.toLowerCase();
       const email = (u.email || '').toLowerCase();
       const role = (u.role || '').toLowerCase();
-      return email.includes(recherche) || role.includes(recherche) || u.id.toString().includes(recherche);
+      const rechercheGlobale = this.texteRecherche.toLowerCase();
+
+      // 1. Vérification Globale
+      const matchGlobal = !this.texteRecherche || 
+                          email.includes(rechercheGlobale) || 
+                          role.includes(rechercheGlobale) || 
+                          u.id.toString().includes(rechercheGlobale);
+
+      // 2. Vérifications Spécifiques
+      const matchEmail = !this.filtreEmail || email.includes(this.filtreEmail.toLowerCase());
+      const matchRole = !this.filtreRole || role.includes(this.filtreRole.toLowerCase());
+      
+      // 3. Vérification Date
+      let matchDate = true;
+      if (this.filtreDateInscription) {
+        const dateInscrit = u.dateInscription || u.date_inscription || '';
+        matchDate = dateInscrit.startsWith(this.filtreDateInscription);
+      }
+
+      return matchGlobal && matchEmail && matchRole && matchDate;
     });
 
     resultats.sort((a, b) => {
       let valA = a[this.critereTri] || '';
       let valB = b[this.critereTri] || '';
-      
       if (typeof valA === 'string') valA = valA.toLowerCase();
       if (typeof valB === 'string') valB = valB.toLowerCase();
-
       if (valA < valB) return this.triAscendant ? -1 : 1;
       if (valA > valB) return this.triAscendant ? 1 : -1;
       return 0;
     });
 
     return resultats;
-  }
-
-  modifierUtilisateur(id: number) {
-    this.router.navigate(['/admin/utilisateurs', id, 'modifier']);
   }
 }
