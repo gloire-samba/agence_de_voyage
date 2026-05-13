@@ -39,7 +39,7 @@ export class AdminVoyageFormComponent implements OnInit {
       this.chargerVoyage(this.voyageId);
     } else {
       this.formVoyage.statut = 'A_VENIR';
-      this.ajouterSegment(); // Ajoute un 1er segment vide par défaut
+      this.ajouterSegment(); 
       this.isLoading = false; 
     }
   }
@@ -95,7 +95,6 @@ export class AdminVoyageFormComponent implements OnInit {
     this.verifierFormulaire();
   }
 
-  // 👉 LA FONCTION DE VALIDATION MISE À JOUR AVEC TES RÈGLES
   verifierFormulaire() {
     this.erreurFormulaire = '';
 
@@ -120,7 +119,6 @@ export class AdminVoyageFormComponent implements OnInit {
     // 🌍 NOUVELLES RÈGLES DE COHÉRENCE DES VILLES
     // ==========================================
     
-    // On met tout en minuscules et on enlève les espaces inutiles pour éviter les fausses erreurs
     const villeDepGlobale = this.formVoyage.villeDepart.trim().toLowerCase();
     const villeArrGlobale = this.formVoyage.villeArrivee.trim().toLowerCase();
     const premierSegDep = (this.formVoyage.segments[0].villeDepart || '').trim().toLowerCase();
@@ -148,7 +146,7 @@ export class AdminVoyageFormComponent implements OnInit {
     }
 
     // ==========================================
-    // ⏱️ RÈGLES DE COHÉRENCE TEMPORELLES
+    // ⏱️ RÈGLES DE COHÉRENCE TEMPORELLES ET STATUT
     // ==========================================
 
     const maintenant = new Date();
@@ -170,12 +168,6 @@ export class AdminVoyageFormComponent implements OnInit {
         return;
       }
 
-      // Si c'est une création (pas d'ID), la date de départ doit être dans le futur
-      if (!this.voyageId && i === 0 && dep <= maintenant) {
-        this.erreurFormulaire = `Le départ du 1er segment doit être dans le futur (après ${maintenant.toLocaleDateString()}).`;
-        return;
-      }
-
       // Le départ du segment N doit être APRES l'arrivée du segment N-1
       if (i > 0) {
         const arriveePrecedente = new Date(this.formVoyage.segments[i-1].heureArrivee);
@@ -183,6 +175,29 @@ export class AdminVoyageFormComponent implements OnInit {
           this.erreurFormulaire = `Segment ${i+1} : Le départ doit se faire APRÈS l'arrivée du Segment ${i}.`;
           return;
         }
+      }
+    }
+
+    // 👉 REGLE 2 : Contrôle des dates par rapport au statut sélectionné
+    const premierDepart = new Date(this.formVoyage.segments[0].heureDepart);
+    const derniereArrivee = new Date(this.formVoyage.segments[this.formVoyage.segments.length - 1].heureArrivee);
+
+    if (this.formVoyage.statut === 'A_VENIR') {
+      if (premierDepart <= maintenant) {
+        this.erreurFormulaire = `Cohérence Statut : Pour un voyage "A VENIR", la date de départ du 1er segment doit être dans le futur (après ${maintenant.toLocaleString('fr-FR')}).`;
+        return;
+      }
+    } 
+    else if (this.formVoyage.statut === 'EN_COURS') {
+      if (maintenant < premierDepart || maintenant > derniereArrivee) {
+        this.erreurFormulaire = `Cohérence Statut : Pour un voyage "EN COURS", la date actuelle (${maintenant.toLocaleString('fr-FR')}) doit être comprise entre le 1er départ et la dernière arrivée.`;
+        return;
+      }
+    } 
+    else if (this.formVoyage.statut === 'TERMINE') {
+      if (derniereArrivee >= maintenant) {
+        this.erreurFormulaire = `Cohérence Statut : Pour un voyage "TERMINE", l'arrivée du dernier segment doit être dans le passé (avant ${maintenant.toLocaleString('fr-FR')}).`;
+        return;
       }
     }
   }
@@ -193,7 +208,6 @@ export class AdminVoyageFormComponent implements OnInit {
 
     const backend = this.serveurService.getBackend();
     
-    // On convertit les segments pour le backend, en calculant l'ORDRE automatiquement
     const segmentsFormates = this.formVoyage.segments.map((s: any, index: number) => {
       return backend === 'spring' ? {
         ordre: index + 1, villeDepart: s.villeDepart, villeArrivee: s.villeArrivee, heureDepart: s.heureDepart, heureArrivee: s.heureArrivee

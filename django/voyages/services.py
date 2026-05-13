@@ -79,8 +79,14 @@ class VoyageService:
         # 👉 On extrait les segments
         segments_data = data.pop('segments', None)
         
+        # 👉 CORRECTION ICI : On retire les relations inverses envoyées par Angular
+        data.pop('avis', None)
+        data.pop('reservations', None)
+        data.pop('id', None) # Par sécurité
+        
         passage_en_annule = data.get('statut') == 'ANNULE' and voyage.statut != 'ANNULE'
 
+        # Maintenant, la boucle ne plantera plus !
         for key, value in data.items():
             setattr(voyage, key, value)
         voyage.save()
@@ -90,17 +96,27 @@ class VoyageService:
             # L'admin a modifié les segments. On efface les anciens et on recrée les nouveaux
             voyage.segments.all().delete()
             for seg_data in segments_data:
+                # 👉 CORRECTION : on nettoie les clés en double avant la création
+                seg_data.pop('id', None)
+                seg_data.pop('voyage', None)
+                seg_data.pop('voyage_id', None)
+                
                 Segment.objects.create(voyage=voyage, **seg_data)
 
+        # 👉 AJOUT DES MESSAGES DE LOGS POUR LE REMBOURSEMENT DE MASSE
         if passage_en_annule:
+            print(f"⚠️ Voyage #{pk} annulé par l'admin. Déclenchement du remboursement de masse...")
             reservations = Reservation.objects.filter(voyage_id=pk).exclude(statut='ANNULE')
             for res in reservations:
                 try:
                     ReservationService.annuler(res.id)
+                    print(f"✅ Client {res.utilisateur.email} remboursé.")
                 except Exception as e:
-                    print(f"❌ Échec remboursement: {e}")
+                    print(f"❌ Échec remboursement pour la réservation #{res.id}: {e}")
 
         return voyage
+    
+    
     @staticmethod
     def supprimer(pk):
         Voyage.objects.filter(id=pk).delete()

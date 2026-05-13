@@ -80,7 +80,10 @@
           <td class="action-cells">
             <button class="btn-action btn-edit" (click)="allerVersFormulaire(v.id)">✏️ Modifier</button>
             <button class="btn-action btn-view" (click)="voirAvisVoyage(v.id)">⭐ Avis</button>
-            <button class="btn-action btn-delete" (click)="supprimerOuAnnulerVoyage(v)">🚫 Annuler / Suppr.</button>
+            
+            @if (v.statut !== 'TERMINE' && v.statut !== 'ANNULE') {
+              <button class="btn-action btn-delete" (click)="supprimerOuAnnulerVoyage(v)">🚫 Annuler / Suppr.</button>
+            }
           </td>
         </tr>
       }

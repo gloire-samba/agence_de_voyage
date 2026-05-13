@@ -1,22 +1,23 @@
 package com.agence.voyage.service;
 
-import com.agence.voyage.entity.Voyage;
-import com.agence.voyage.entity.Reservation;
-import com.agence.voyage.entity.Segment;
-import com.agence.voyage.repository.VoyageRepository;
-import com.agence.voyage.repository.ReservationRepository;
-import com.agence.voyage.repository.SegmentRepository; // 👉 NOUVEL IMPORT
-import lombok.RequiredArgsConstructor;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
 
 import org.springframework.boot.context.event.ApplicationReadyEvent;
-import org.springframework.context.event.EventListener;
+import org.springframework.context.event.EventListener; // 👉 NOUVEL IMPORT
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Comparator;
-import java.util.ArrayList;
+import com.agence.voyage.entity.Reservation;
+import com.agence.voyage.entity.Segment;
+import com.agence.voyage.entity.Voyage;
+import com.agence.voyage.repository.ReservationRepository;
+import com.agence.voyage.repository.SegmentRepository;
+import com.agence.voyage.repository.VoyageRepository;
+
+import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
@@ -119,6 +120,8 @@ public class VoyageService {
             
             // On enregistre les nouveaux
             for (Segment s : voyageDetails.getSegments()) {
+                // 👉 CORRECTION ICI : On force l'ID à null pour que Hibernate fasse un INSERT et non un UPDATE
+                s.setId(null); 
                 s.setVoyage(voyage);
                 segmentRepository.save(s);
                 voyage.getSegments().add(s);
