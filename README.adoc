@@ -1,0 +1,210 @@
+= ✈️ Projet Agence de Voyage IA : Multi-Backend (Spring & Django)
+:toc: macro
+:toc-title: Sommaire
+:sectnums:
+
+toc::[]
+
+== 📖 Présentation du Projet
+Bienvenue dans le projet **Agence de Voyage IA**. Il s'agit d'une plateforme complète de réservation de vols intégrant des fonctionnalités avancées : recherche de voyages par intelligence artificielle (texte et voix), système de réservation avec paiement sécurisé (Stripe), génération de billets PDF, envoi d'e-mails, et un panel d'administration complet.
+
+L'innovation majeure de ce projet réside dans son architecture hybride. L'interface **Angular** peut basculer dynamiquement, sans rechargement, entre deux moteurs back-end différents :
+* Un serveur **Java (Spring Boot)**, robuste, utilisant une base H2.
+* Un serveur **Python (Django)**, agile, utilisant une base SQLite.
+* Un **Microservice IA (FastAPI)**, totalement déporté dans le cloud sur Hugging Face, qui décharge les serveurs principaux du lourd calcul lié à l'intelligence artificielle.
+
+== 🏗️ Architecture et Composants
+Le projet est divisé en quatre modules indépendants. Chaque module possède sa propre documentation détaillée :
+
+* 🎨 link:./angular/README.adoc[**angular (Angular)**] : L'interface utilisateur interactive (Port 4200).
+* ☕ link:./spring/README.adoc[**spring (Java)**] : Le serveur principal en Spring Boot (Port 8080).
+* 🎸 link:./django/README.adoc[**django (Python)**] : Le serveur principal alternatif en Django (Port 8000).
+* 🧠 link:./IA/README.adoc[**IA (FastAPI)**] : Le microservice d'analyse sémantique et vocale (Hébergé sur Hugging Face).
+
+== 🛠️ Prérequis
+Pour exécuter ce projet, vous devez disposer de :
+* **Docker** et **Docker Compose** (Fortement recommandé pour simplifier les lancements).
+* _Ou pour le développement manuel :_ Node.js v24+, Java JDK 25 et Python 3.12.
+
+== ⚙️ Configuration des variables d'environnement
+
+Avant de lancer les serveurs, vous devez configurer vos clés de sécurité et d'API. Le projet requiert deux fichiers de configuration : un `.env` pour Django/IA et un `application-secret.properties` pour Spring Boot.
+
+=== 1. Fichier `.env` (Pour Django)
+Créez un fichier `.env` à la racine de votre dossier **Django** (à côté de `manage.py`) et remplissez-le en vous basant sur ce modèle :
+
+[source,properties]
+----
+# --- AUTHENTIFICATION SOCIALE ---
+GITHUB_CLIENT_ID=votre_client_id_github_ici
+GITHUB_CLIENT_SECRET=votre_secret_github_ici
+
+GOOGLE_CLIENT_ID=votre_client_id_google_ici
+GOOGLE_CLIENT_SECRET=votre_secret_google_ici
+
+# --- SÉCURITÉ ---
+JWT_SECRET_KEY=mettez_une_cle_secrete_tres_longue_ici
+
+# --- STRIPE ---
+STRIPE_SECRET_KEY=sk_test_votre_cle_secrete_stripe_ici
+
+# --- EMAIL (Google SMTP) ---
+EMAIL_HOST_USER=votre_email@gmail.com
+# Rappel : le mot de passe d'application de 16 lettres, TOUT ATTACHÉ sans les espaces !
+EMAIL_HOST_PASSWORD=votremotdepasseapplication
+----
+
+=== 2. Fichier `application-secret.properties` (Pour Spring Boot)
+Créez un fichier `application-secret.properties` dans le dossier `src/main/resources/` de votre projet **Spring Boot** :
+
+[source,properties]
+----
+# ==========================================
+# CLÉS STRIPE
+# ==========================================
+stripe.api.secretKey=sk_test_votre_cle_secrete_stripe_ici
+
+# ==========================================
+# CLÉS JWT (JSON Web Token)
+# ==========================================
+jwt.secret=mettez_une_cle_secrete_tres_longue_ici
+jwt.expiration=86400000
+
+# ==========================================
+# OAUTH2 GOOGLE
+# ==========================================
+spring.security.oauth2.client.registration.google.client-id=votre_client_id_google_ici
+spring.security.oauth2.client.registration.google.client-secret=votre_secret_google_ici
+spring.security.oauth2.client.registration.google.scope=profile,email
+
+# ==========================================
+# OAUTH2 GITHUB
+# ==========================================
+spring.security.oauth2.client.registration.github.client-id=votre_client_id_github_ici
+spring.security.oauth2.client.registration.github.client-secret=votre_secret_github_ici
+spring.security.oauth2.client.registration.github.scope=user:email
+
+# ==========================================
+# EMAIL SMTP
+# ==========================================
+spring.mail.username=votre_email@gmail.com
+spring.mail.password=votremotdepasseapplication
+----
+
+== 🔑 Tutoriel : Obtenir vos Clés et Configurer les Services externes
+
+=== Étape 1 : Obtenir la clé Google Gemini (Pour l'IA)
+Cette clé permet au microservice IA d'analyser vos requêtes et de transcrire l'audio.
+
+1. Allez sur https://aistudio.google.com/[Google AI Studio].
+
+2. Connectez-vous avec un compte Google.
+
+3. Cliquez sur **"Get API key"** à gauche, puis sur le bouton bleu **"Create API key"**.
+
+4. Copiez cette clé (elle commence généralement par `AIza...`). Gardez-la sous la main pour l'étape 2.
+
+=== Étape 2 : Déployer le microservice IA sur Hugging Face
+L'IA de notre application ne tourne pas sur votre machine, mais dans le cloud.
+
+1. Créez un compte sur https://huggingface.co/[Hugging Face].
+
+2. En haut à droite, cliquez sur votre profil puis sur **"New Space"**.
+
+3. Donnez un nom au Space (ex: `mon-agence-ia`), choisissez la licence (ex: MIT), sélectionnez le SDK **"Docker"** (Blank), puis rendez le Space **Public**.
+
+4. Cliquez sur **"Create Space"**.
+
+5. Allez dans l'onglet **"Settings"** de votre Space, puis dans **"Variables and secrets"**.
+
+6. Dans la section **"Secrets"**, ajoutez une nouvelle variable :
+   * Name : `GOOGLE_API_KEY`
+   * Value : _La clé obtenue à l'Étape 1_.
+
+7. Allez dans l'onglet **"Files"** de votre Space, et uploadez le fichier `main.py`, le fichier `requirements.txt` et le `Dockerfile` de votre dossier IA.
+
+8. Le Space va démarrer ("Building" puis "Running"). **Copiez l'URL de votre Space** et mettez-la à jour dans les fichiers `IaClientService.java` (Spring) et `services.py` (Django) pour que vos backends pointent vers ce nouveau cerveau.
+
+=== Étape 3 : Obtenir le mot de passe d'application Google (Pour envoyer les billets par E-mail)
+
+Pour des raisons de sécurité, Google n'autorise plus la connexion avec votre mot de passe habituel. Il faut créer un "mot de passe d'application".
+
+1. Allez sur les https://myaccount.google.com/security[Paramètres de sécurité de votre compte Google].
+
+2. Activez la **Validation en deux étapes** si ce n'est pas déjà fait.
+
+3. Cherchez **"Mots de passe des applications"** dans la barre de recherche des paramètres.
+
+4. Générez un mot de passe (donnez-lui le nom "Agence Voyage").
+
+5. Google va afficher un code de 16 lettres. **Copiez-le sans les espaces** et collez-le dans vos variables `EMAIL_HOST_PASSWORD` (Django) et `spring.mail.password` (Spring).
+
+=== Étape 4 : Configurer la connexion avec GitHub et Google (OAuth 2.0)
+
+==== 🌐 Google Cloud Console
+1. Allez sur la link:https://console.cloud.google.com/[Google Cloud Console].
+2. Créez un nouveau projet.
+3. Accédez à **API et services > Identifiants**.
+4. Cliquez sur **Créer des identifiants > ID de client OAuth**.
+5. Configurez l'écran de consentement en mode "Externe".
+6. **Origines JavaScript autorisées :** `http://localhost:4200`
+7. **URI de redirection autorisés :**
+   * Pour Spring : `http://localhost:8080/login/oauth2/code/google`
+   * Pour Django : `http://localhost:8000/accounts/google/login/callback/`
+8. Notez votre **Client ID** et **Client Secret**.
+
+==== 🐙 GitHub Developer Settings
+1. Allez dans vos **Settings** GitHub > **Developer Settings** > **OAuth Apps**.
+2. Cliquez sur **New OAuth App**.
+3. **Homepage URL :** `http://localhost:4200`
+4. **Authorization callback URL :**
+   * Pour Spring : `http://localhost:8080/login/oauth2/code/github`
+   * Pour Django : `http://localhost:8000/accounts/github/login/callback/`
+5. Enregistrez et générez un **Client Secret**.
+
+=== Étape 5 : Configurer Stripe (Paiements sécurisés)
+1. Créez un compte gratuit sur https://dashboard.stripe.com/[Stripe].
+2. Restez impérativement en **Mode Test** (un petit badge en haut à droite).
+3. Allez dans l'onglet **"Développeurs" > "Clés API"**.
+4. Copiez la **Clé secrète** (commençant par `sk_test_...`) et mettez-la dans vos fichiers `.env` et `.properties`.
+5. Notez également votre **Clé publique** (commençant par `pk_test_...`) et vérifiez qu'elle est bien configurée dans le fichier `paiement.component.ts` de votre projet Angular.
+
+== 💳 Tester les paiements Stripe (Important !)
+
+Puisque nous sommes en mode Test, **n'utilisez jamais une vraie carte bancaire**. Stripe met à disposition des cartes fictives :
+
+* ✅ **Paiement accepté (Cas de succès) :**
+** Numéro de carte : `4242 4242 4242 4242`
+** Date d'expiration : N'importe quelle date dans le futur (ex: `12/30`)
+** CVC : N'importe quel chiffre (ex: `123`)
+
+* ❌ **Paiement refusé (Cas d'échec) :**
+** Numéro de carte : `4000 0000 0000 0002`
+** Expiration / CVC : Identique à ci-dessus.
+
+⚠️ **ASTUCE IMPORTANTE POUR L'INTERFACE STRIPE :**
+Stripe a récemment imposé l'affichage de sa fonctionnalité de paiement en 1 clic nommée **"Link"**. Si l'interface vous propose automatiquement de payer via Link :
+
+1. Cliquez sur les **trois petits points horizontaux (...)** situés à côté de l'option Link.
+
+2. Choisissez l'option **"Payer sans Link"**.
+
+3. Vous pourrez alors entrer les numéros de carte de test ci-dessus.
+
+== 🚀 Lancement Global de l'Application
+
+La manière la plus simple de lancer toute l'architecture d'un seul coup est d'utiliser **Docker Compose** si vous avez créé un fichier `docker-compose.yml` à la racine.
+
+1. Ouvrez un terminal à la racine du projet.
+2. Tapez la commande suivante :
+[source,bash]
+----
+docker-compose up --build
+----
+3. Patientez pendant l'installation et le peuplement des bases de données.
+4. L'application est prête !
+* Accédez au Front-end : `http://localhost:4200`
+* L'API Spring répond sur : `http://localhost:8080`
+* L'API Django répond sur : `http://localhost:8000`
+
+Si vous ne possédez pas de `docker-compose.yml` global, veuillez vous référer aux README de chaque sous-dossier (Angular, Spring, Django) pour les lancer de manière individuelle via Docker ou manuellement.

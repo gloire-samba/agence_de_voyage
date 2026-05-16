@@ -1,0 +1,98 @@
+= 🎨 Interface Web (Front-end Angular)
+:toc: macro
+:toc-title: Sommaire
+:sectnums:
+
+toc::[]
+
+link:../README.md[⬅️ Retour à la racine du projet]
+
+== 📖 Objectif du module
+Ce dossier contient l'interface graphique de l'Agence de Voyage, développée avec le framework **Angular** (en mode *Standalone Components*).
+C'est la vitrine du projet. Elle offre une expérience utilisateur riche (UX) et s'adapte dynamiquement au profil connecté (Client ou Administrateur).
+
+**Fonctionnalités principales :**
+* 🔄 **Sélecteur de Backend** : Basculement à chaud (sans redémarrage) entre le serveur Java (Spring Boot) et le serveur Python (Django) via le `ServeurService`.
+* 🔍 **Recherche Avancée & IA** : Recherche classique, recherche en langage naturel (texte) et recherche **vocale** (grâce à l'API `MediaRecorder` du navigateur).
+* 💳 **Paiement Intégré** : Interface de paiement sécurisée via Stripe Elements.
+* 🛡️ **Panel Administrateur Complet** : Gestion des vols, transfert de billets, bannissement d'utilisateurs et modération des avis.
+* 🎫 **Espace Client** : Historique des réservations, génération de carte d'embarquement et dépôt d'avis (écrit ou vocal).
+
+== 🏗️ Architecture et Fichiers Clés
+Le projet respecte les standards modernes d'Angular 17+ (sans modules, utilisation du control flow `@if` / `@for`) :
+
+* `src/app/app.routes.ts` & `app.config.ts` : Configuration du routage et injection des dépendances globales (HttpClient, Intercepteurs).
+* `src/app/models/` : Interfaces TypeScript (`Voyage`, `Reservation`, `Utilisateur`, etc.) garantissant le typage strict des données reçues des backends.
+* `src/app/services/` : Le "système nerveux" de l'application.
+  ** `serveur.service.ts` : Gère le basculement Spring/Django.
+  ** `auth.service.ts` : Gestion de la session utilisateur et du stockage du token.
+  ** `audio-recorder.service.ts` : Capture le flux du microphone pour les recherches et avis vocaux.
+  ** `voyage/reservation/billet.service.ts` : Appels HTTP REST vers les backends.
+* `src/app/components/` : Les vues de l'application, divisées en deux mondes :
+  ** *Espace Public/Client* : `login`, `inscription`, `recherche`, `catalogue`, `paiement`, `historique`, `profil`.
+  ** *Espace Admin* : `admin-dashboard`, `admin-voyages`, `admin-utilisateurs`, `admin-recherche-place`, etc.
+* `src/app/guards/auth.guard.ts` : Bloque l'accès aux pages sensibles si l'utilisateur n'est pas connecté, ou n'est pas administrateur.
+* `src/app/interceptors/jwt.interceptor.ts` : Intercepte toutes les requêtes HTTP sortantes pour y greffer automatiquement le token de sécurité `Bearer`.
+* 🐳 `Dockerfile` & `nginx.conf` : Configuration pour construire l'application (Node.js) et la servir via un serveur web ultra-léger (Nginx).
+
+== 🔗 Configuration de l'Environnement
+Les URLs de vos backends sont définies dans le fichier d'environnement.
+Vérifiez `src/environments/environment.development.ts` :
+[source,typescript]
+----
+export const environment = {
+  production: false,
+  urls: {
+    spring: 'http://localhost:8080/api',  
+    django: 'http://localhost:8000/api',  
+  }
+};
+----
+
+== 🚀 Comment lancer le Front-end ?
+
+=== Méthode 1 : Lancement avec Docker (Recommandé pour la production/démo)
+Cette méthode utilise Node 24 pour compiler le code, puis Nginx pour le servir.
+
+. Ouvrez un terminal dans ce sous-dossier Angular.
+. Construisez l'image Docker :
++
+[source,bash]
+----
+docker build -t voyage-angular .
+----
+. Démarrez le conteneur en liant le port interne 80 de Nginx au port 4200 de votre machine :
++
+[source,bash]
+----
+docker run -p 4200:80 voyage-angular
+----
+L'interface est accessible sur **http://localhost:4200**.
+
+=== Méthode 2 : Lancement manuel de développement (Live Reload)
+Cette méthode est idéale si vous modifiez le code (HTML/CSS/TS) car la page s'actualisera toute seule.
+_Prérequis : Node.js (v24+) et Angular CLI installés._
+
+. Ouvrez un terminal dans ce dossier.
+. Installez toutes les bibliothèques `npm` :
++
+[source,bash]
+----
+npm install --legacy-peer-deps
+----
+. Lancez le serveur de développement Angular :
++
+[source,bash]
+----
+ng serve
+----
+L'interface est accessible sur **http://localhost:4200**.
+
+== ⚠️ Avertissement de fonctionnement
+Bien que l'interface graphique puisse s'afficher seule, **elle est totalement inutile sans un serveur back-end pour lui fournir les données**.
+* Assurez-vous d'avoir lancé au moins le backend **Spring Boot (8080)** ou **Django (8000)** en parallèle.
+* L'IA fonctionne sans backend local puisqu'elle appelle directement le microservice distant déployé sur Hugging Face.
+
+== 🛑 Comment arrêter le serveur ?
+* **Si lancé via Docker :** Appuyez sur **`Ctrl + C`** dans le terminal du conteneur.
+* **Si lancé via Angular CLI (`ng serve`) :** Appuyez sur **`Ctrl + C`** dans le terminal, puis confirmez l'arrêt du batch (Touche `O` ou `Y`).

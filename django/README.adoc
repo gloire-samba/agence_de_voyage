@@ -1,0 +1,119 @@
+= 🎸 Serveur Principal Python (Django)
+:toc: macro
+:toc-title: Sommaire
+:sectnums:
+
+toc::[]
+
+link:../README.adoc[⬅️ Retour à la racine du projet]
+
+== 📖 Objectif du module
+Ce dossier contient le second serveur back-end principal (l'alternative au serveur Spring Boot) : le **Backend Django**.
+Il représente le cœur de l'application de l'Agence de Voyage, développé avec le framework Python **Django** et **Django REST Framework (DRF)**.
+
+**Ses responsabilités principales :**
+* 🗄️ **Base de données** : Gestion relationnelle avec l'ORM Django sur une base de données locale SQLite (par défaut).
+* 🔒 **Sécurité** : Authentification sécurisée par JWT (implémentation sur mesure) et gestion stricte des permissions (Client vs Admin).
+* 💳 **Paiement** : Intégration directe et sécurisée avec l'API Stripe pour la génération des tickets de paiement.
+* 📄 **Génération & Communication** : Création dynamique de billets d'embarquement au format PDF avec la librairie `reportlab` et envoi automatique par e-mail.
+* 🧠 **Relais IA** : Agit comme un pont HTTP (`requests`) pour interroger de manière fluide le microservice IA déporté (Hugging Face) lors des recherches textuelles et vocales.
+
+== 🏗️ Fichiers clés et Architecture
+L'application respecte une architecture MVC/MVT robuste, orientée API REST :
+
+* `requirements.txt` : Liste exhaustive de toutes les dépendances Python (Django, DRF, Faker, PyJWT, Stripe, ReportLab, etc.).
+* `settings.py` : Configuration principale du projet (base de données, autorisation CORS, e-mails SMTP, variables d'environnement).
+* `seed.py` : Script de commande personnalisé (`python manage.py seed`) qui peuple la base de données avec 300 utilisateurs, 100 voyages, et de multiples réservations grâce à la librairie `Faker`.
+* `models.py` : Définition des entités et de la structure de la base de données (Utilisateur, Voyage, Segment, Reservation, Billet, Avis).
+* `serializers.py` : Transformation des modèles de la BDD en objets JSON formatés et exploitables par le front-end Angular.
+* `views.py` : Expose les routes REST (ViewSets pour le CRUD classique, APIViews pour l'authentification et les paiements).
+* `services.py` : Isole toute la logique métier complexe (logique transactionnelle des échanges, génération de PDF, envois de mails, appels au microservice IA).
+* `security.py` : Gestion complète et personnalisée des tokens JWT et de la logique des permissions par rôle.
+* 🐳 `Dockerfile` & `entrypoint.sh` : Scripts pour la conteneurisation. L'`entrypoint.sh` automatise les migrations et l'injection du seed de données au démarrage.
+
+== 🔗 Configuration et Variables d'Environnement
+Pour interagir avec Stripe, le serveur SMTP (e-mails) et sécuriser les tokens JWT, ce serveur utilise des variables d'environnement.
+
+. Créez un fichier `.env` à la racine de ce sous-dossier (au même niveau que le fichier `manage.py`).
+. Remplissez-le avec vos clés (référez-vous au link:../README.md[README principal] pour savoir comment obtenir ces clés).
+
+Exemple de contenu attendu :
+[source,properties]
+----
+# Sécurité Django & JWT
+SECRET_KEY=votre_cle_secrete_django_tres_longue_et_aleatoire
+JWT_SECRET_KEY=MaCleSecreteSuperLonguePourDjangoEtAngular123!
+
+# Stripe
+STRIPE_SECRET_KEY=sk_test_...
+
+# Google SMTP (Envoi de mails)
+EMAIL_HOST_USER=votre.email@gmail.com
+EMAIL_HOST_PASSWORD=mot_de_passe_application_google
+----
+
+== 🚀 Comment lancer le serveur ?
+
+Vous avez deux méthodes pour lancer ce serveur Django.
+
+=== Méthode 1 : Lancement avec Docker (Recommandé)
+Cette méthode est la plus simple car elle construit l'environnement Python exact et automatise la préparation de la base de données.
+
+. Ouvrez un terminal dans ce sous-dossier (là où se trouve le `Dockerfile`).
+. Construisez l'image Docker du backend Django :
++
+[source,bash]
+----
+docker build -t voyage-django .
+----
+. Démarrez le conteneur en exposant le port 8000 :
++
+[source,bash]
+----
+docker run -p 8000:8000 voyage-django
+----
+_Note : Grâce au script `entrypoint.sh`, la base de données SQLite est automatiquement créée, les migrations sont appliquées, et le `seed.py` peuple les données (300 utilisateurs, voyages) au démarrage._
+
+=== Méthode 2 : Lancement manuel de développement
+_Prérequis : Python (version 3.12 ou supérieure). Il est fortement conseillé d'utiliser un environnement virtuel._
+
+. Ouvrez un terminal dans ce dossier.
+. Préparez l'environnement et installez les dépendances :
++
+[source,bash]
+----
+# Créer l'environnement
+python -m venv venv
+
+# L'activer (Sur Windows)
+venv\Scripts\activate
+# L'activer (Sur Linux / macOS)
+source venv/bin/activate
+
+# Installer les bibliothèques
+pip install -r requirements.txt
+----
+
+. Préparez la base de données et générez les fausses données :
++
+[source,bash]
+----
+python manage.py makemigrations
+python manage.py migrate
+python manage.py seed
+----
+
+. Lancez le serveur de développement :
++
+[source,bash]
+----
+python manage.py runserver
+----
+
+Le serveur écoutera les requêtes sur **http://localhost:8000**.
+
+== 🛑 Comment arrêter le serveur ?
+Il est crucial de bien arrêter le serveur pour libérer le port 8000.
+
+* **Si lancé avec Docker :** Dans le terminal, appuyez sur **`Ctrl + C`**.
+* **Si lancé manuellement :** Appuyez simultanément sur les touches **`Ctrl + C`** dans le terminal où le serveur s'exécute.

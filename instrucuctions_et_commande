@@ -1,15 +1,3 @@
-installé néo db sur le projet npx neonctl@latest init
-
-mot de passe supabase ,!RSUCx7eGH72yS
-
-Agent conversationnel de réservation (RAG) : Un assistant IA capable de comprendre une requête naturelle du type "Je cherche un voyage chaud avec une seule correspondance à moins de 500€". L'utilisation d'une architecture RAG couplée à un agent autonome  permettrait d'interroger directement tes bases de données (H2 ou SQLite) pour filtrer et proposer les bons trajets.
-
-Analyse multimodale des avis : Permettre aux utilisateurs de laisser des avis vocaux ou des photos. Le système pourrait utiliser la reconnaissance vocale (ASR) pour transcrire l'audio et des modèles de vision pour valider ou taguer automatiquement les images uploadées.
-
-Analyse de sentiments : Traiter automatiquement les commentaires textes laissés par les utilisateurs pour dégager une tendance générale (positif, négatif, points forts de la destination) sans avoir à lire tous les avis.
-
-{"texte": "Je cherche un vol..."}
-
 
 pour simuler un Paiement Réussi :
 

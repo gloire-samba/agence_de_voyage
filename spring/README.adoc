@@ -1,0 +1,108 @@
+= 🍃 Serveur Principal Java (Spring Boot)
+:toc: macro
+:toc-title: Sommaire
+:sectnums:
+
+toc::[]
+
+link:../README.adoc[⬅️ Retour à la racine du projet]
+
+== 📖 Objectif du module
+Ce dossier contient l'un des deux serveurs back-end principaux (l'alternative au serveur Django) : le **Backend Spring Boot**.
+Il représente le cœur de l'application de l'Agence de Voyage. Son rôle est de gérer la logique métier complexe, la persistance des données, la sécurité et l'orchestration des services tiers.
+
+**Ses responsabilités principales :**
+* 🗄️ **Base de données** : Gestion relationnelle avec Hibernate/JPA sur une base H2 (sauvegardée dans un fichier local).
+* 🔒 **Sécurité** : Authentification classique par JWT et connexion sociale via OAuth2 (Google & GitHub).
+* 💳 **Paiement** : Intégration sécurisée avec l'API Stripe pour les paiements et remboursements.
+* 📄 **Génération & Communication** : Création dynamique des billets d'embarquement en PDF (iTextPDF) et envoi par e-mail (JavaMailSender).
+* 🧠 **Relais IA** : Interroge le microservice IA (FastAPI/Hugging Face) pour l'analyse NLP et la transcription vocale.
+
+== 🏗️ Fichiers clés et Architecture
+L'application respecte une architecture MVC/Service stricte et robuste :
+
+* `pom.xml` : Gestionnaire de paquets Maven contenant toutes les dépendances (Spring Web, Security, Stripe, iText, JavaFaker, etc.).
+* `src/main/resources/application.properties` : Configuration de la base H2, de l'envoi de mails et lien vers les secrets.
+* `.../config/DataSeeder.java` : Script de peuplement automatique très puissant qui génère 300 utilisateurs, 100 voyages et de multiples réservations/avis au démarrage grâce à `JavaFaker`.
+* `.../controllers/` : Expose les routes REST pour le frontend Angular (ex: `ReservationController`, `AuthRestController`, `PaiementController`).
+* `.../services/` : Contient toute la logique métier. 
+  ** `ReservationService.java` : Gère l'attribution des sièges, la génération des PDF et l'appel à Stripe.
+  ** `IaClientService.java` : Agit comme client HTTP pour questionner le serveur IA externe.
+* `.../security/` : Configuration de Spring Security, interception des tokens JWT, et gestion des retours de connexion OAuth2.
+* 🐳 **`Dockerfile`** : Script de construction Docker multi-stage (compile avec le JDK 25, exécute avec le JRE allégé).
+
+== 🔗 Configuration et Clés Secrètes
+Ce serveur interagit avec de nombreux services externes (Stripe, Google SMTP, Google OAuth, GitHub OAuth).
+Pour des raisons de sécurité, ces clés **ne doivent pas** être écrites en dur dans le code.
+
+. Créez un fichier `application-secret.properties` dans le dossier `src/main/resources/`.
+. Remplissez-le avec vos identifiants (référez-vous au link:../README.md[README principal] pour savoir comment obtenir ces clés).
+
+Exemple de contenu attendu :
+[source,properties]
+----
+# Stripe
+stripe.api.secretKey=sk_test_...
+
+# Google SMTP (Envoi de mails)
+spring.mail.username=votre.email@gmail.com
+spring.mail.password=mot_de_passe_application
+
+# OAuth2 Google
+spring.security.oauth2.client.registration.google.client-id=...
+spring.security.oauth2.client.registration.google.client-secret=...
+
+# OAuth2 GitHub
+spring.security.oauth2.client.registration.github.client-id=...
+spring.security.oauth2.client.registration.github.client-secret=...
+----
+
+== 🚀 Comment lancer le serveur ?
+
+Vous avez deux méthodes pour lancer ce serveur Spring Boot.
+
+=== Méthode 1 : Lancement avec Docker (Recommandé)
+Cette méthode est la plus simple et garantit que l'environnement d'exécution (Java 25) est correct sans rien installer sur votre machine.
+
+. Ouvrez un terminal dans ce sous-dossier (là où se trouve le `Dockerfile`).
+. Construisez l'image Docker du backend :
++
+[source,bash]
+----
+docker build -t voyage-spring .
+----
+. Démarrez le conteneur en exposant le port 8080 et en créant un volume pour sauvegarder la base de données H2 :
++
+[source,bash]
+----
+docker run -p 8080:8080 -v spring-db:/app/database voyage-spring
+----
+
+=== Méthode 2 : Lancement manuel de développement
+_Prérequis : Java JDK (version 25 minimum)._
+
+**Option A : Via l'interface graphique de votre IDE (VS Code, IntelliJ, Eclipse)**
+Ouvrez le fichier principal `VoyageApplication.java` et cliquez sur le bouton "Run" ou "Démarrer".
+
+**Option B : En ligne de commande avec Maven Wrapper**
+. Ouvrez un terminal dans ce dossier.
+. Lancez la commande suivante :
++
+[source,bash]
+----
+# Sur Linux / macOS :
+./mvnw spring-boot:run
+
+# Sur Windows :
+.\mvnw spring-boot:run
+----
+
+Le serveur écoutera les requêtes sur **http://localhost:8080**.
+Lors du premier lancement, le `DataSeeder` prendra quelques secondes pour générer la base de données.
+
+== 🛑 Comment arrêter le serveur ?
+Il est crucial de bien arrêter le serveur pour libérer le port 8080 avant de lancer autre chose (comme le backend Django par exemple).
+
+* **Si lancé avec Docker :** Dans le terminal, appuyez sur **`Ctrl + C`**. Pour purger le conteneur, utilisez `docker compose down` si vous utilisez un compose global.
+* **Si lancé via l'IDE :** Cliquez sur le bouton "Stop" (garré rouge) de votre éditeur.
+* **Si lancé via le terminal (mvnw) :** Appuyez simultanément sur les touches **`Ctrl + C`**.

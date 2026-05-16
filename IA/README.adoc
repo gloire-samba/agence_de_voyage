@@ -1,0 +1,55 @@
+= 🧠 Microservice IA (Back-end Python / FastAPI)
+:toc: macro
+:toc-title: Sommaire
+:sectnums:
+
+toc::[]
+
+link:../README.adoc[⬅️ Retour à la racine du projet]
+
+== 📖 Présentation
+Ce dossier contient le microservice d'Intelligence Artificielle de l'Agence de Voyage. Construit avec **FastAPI**, il agit comme une API REST indépendante hébergée sur le cloud (Hugging Face). Son rôle est d'alléger vos serveurs principaux (Spring/Django) en déportant les tâches lourdes de traitement du langage naturel (NLP) et de reconnaissance vocale (ASR).
+
+== ⚙️ Architecture & Modèles
+* **LLM Principal** : `gemini-2.5-flash` (modèle ultra-rapide de Google).
+* **Framework** : `FastAPI` (avec le serveur ASGI `Uvicorn`).
+* **Hébergement** : Prévu pour tourner de manière autonome dans un conteneur Docker distant sur un **Space Hugging Face**.
+
+== 🛠️ Fonctionnalités & Endpoints (Routes API)
+L'application expose deux routes principales permettant la recherche intelligente :
+
+* `POST /api/ia/transcrire` : **Reconnaissance Vocale (ASR)**
+** Reçoit un fichier audio (webm, mp4, wav) enregistré depuis le frontend Angular.
+** Intègre un filtre de sécurité pour rejeter les fichiers vides ou corrompus (< 1 Ko).
+** Utilise un prompt strict ("Anti-Perroquet") pour forcer l'IA à transcrire uniquement la voix humaine et à renvoyer la balise `SILENCE` en cas d'absence de parole.
+
+* `POST /api/ia/analyser` : **Analyse Sémantique (NLP)**
+** Reçoit une requête textuelle en langage naturel (ex: "Je cherche un vol pour Madrid à moins de 200€ d'environ 3 heures").
+** Extrait intelligemment les critères pour remplir une structure de données stricte (Pydantic `CriteresExtraits`).
+** Gère les conversions complexes à la volée (ex: conversion d'une expression comme "2 jours" en une valeur `duree_max_minutes` exploitable par la base de données).
+** Retourne un `JSON` formaté prêt à être filtré par les backends Django ou Spring.
+
+== 📂 Fichiers Principaux
+* `main.py` : Le cœur absolu du service. Il contient la logique FastAPI, les modèles de données Pydantic, la configuration de sécurité Gemini et la gestion ciblée des erreurs HTTP.
+
+== 🚀 Lancement et Déploiement
+
+Puisque ce service a été configuré pour être déporté sur **Hugging Face**, il **n'a pas besoin d'être démarré manuellement** avec votre `docker-compose` principal. Il fonctionne 24h/24 en tant que microservice distant.
+
+Cependant, si vous avez besoin de le tester ou de le modifier en local sur votre machine :
+1. Créez un fichier `.env` dans ce dossier contenant votre clé : `GOOGLE_API_KEY=votre_cle_ici`
+2. Lancez le serveur localement avec la commande suivante :
+[source,bash]
+----
+uvicorn main:app --reload --port 8001
+----
+
+== 🔑 Prérequis et Clés API
+Toutes les instructions pour récupérer la clé Google API et la configurer dans l'environnement global (ou sur Hugging Face) sont centralisées dans le README principal.
+link:../README.md#configuration-des-cles[🔑 Voir le guide de configuration global]
+
+== ⚠️ Avertissement : Limites et Quotas Gratuits
+Ce projet repose sur l'API Gemini de Google dans sa version gratuite. Vous partagez donc la puissance de calcul avec le reste du monde.
+* **Erreurs 429 (Quota) / 503 (Surcharge)** : En cas de forte demande mondiale ou de dépassement de votre quota gratuit de requêtes par minute, Google bloquera l'accès.
+* Ce n'est pas un bug de code : la fonction `gerer_erreur_gemini()` dans `main.py` est d'ailleurs conçue pour intercepter ces crashs et renvoyer un message d'erreur clair et humain à l'interface Angular, plutôt qu'une erreur serveur brute.
+* _Solution_ : Patientez quelques instants avant de lancer une nouvelle recherche vocale ou textuelle.
