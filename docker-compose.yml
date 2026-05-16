@@ -1,0 +1,26 @@
+services:
+  django:
+    build: ./django
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./django:/app
+    environment:
+      - PYTHONUNBUFFERED=1
+    init: true
+
+  spring:
+    build: ./spring/voyage
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=update
+    volumes:
+      - ./spring_data:/app/database
+    init: true
+
+  angular:
+    build: ./angular/agence-voyage
+    ports:
+      - "4200:80"
+    init: true

@@ -88,4 +88,24 @@ public class ReservationController {
             return ResponseEntity.badRequest().body(Map.of("erreur", e.getMessage()));
         }
     }
+
+    @PostMapping("/{id}/echanger")
+    public ResponseEntity<?> echanger(@PathVariable Long id, @RequestBody Map<String, Object> payload) {
+        try {
+            Object voyageIdObj = payload.get("nouveauVoyageId");
+            if (voyageIdObj == null) {
+                return ResponseEntity.badRequest().body(Map.of("erreur", "ID du nouveau voyage manquant."));
+            }
+            
+            Long nouveauVoyageId = Long.valueOf(voyageIdObj.toString());
+            reservationService.echanger(id, nouveauVoyageId);
+            
+            return ResponseEntity.ok(Map.of("message", "Échange réussi avec succès."));
+            
+        } catch (Exception e) {
+            // 👉 INDISPENSABLE : Force l'affichage de l'erreur interne dans le terminal Docker pour qu'on puisse la lire
+            e.printStackTrace(); 
+            return ResponseEntity.badRequest().body(Map.of("erreur", e.getMessage()));
+        }
+    }
 }

@@ -1,5 +1,9 @@
-asgiref==3.11.1
-Django==6.0.4
-djangorestframework==3.17.1
-Faker==40.15.0
-sqlparse==0.5.5
+django
+djangorestframework
+django-cors-headers
+faker
+PyJWT
+requests
+stripe
+reportlab
+python-dotenv

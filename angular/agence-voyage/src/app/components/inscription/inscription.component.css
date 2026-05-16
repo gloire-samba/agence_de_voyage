@@ -122,3 +122,9 @@ input:focus {
   font-size: 1.2rem; cursor: pointer; padding: 0; outline: none;
 }
 .btn-eye:hover { transform: scale(1.1); }
+
+.btn-submit:disabled {
+  background: #94a3b8;
+  cursor: not-allowed;
+  transform: none;
+}

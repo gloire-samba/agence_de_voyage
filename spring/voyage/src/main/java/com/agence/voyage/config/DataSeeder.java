@@ -52,7 +52,6 @@ public class DataSeeder implements CommandLineRunner {
         // 2. Création de 300 Utilisateurs (La foule !)
         List<Utilisateur> utilisateurs = new ArrayList<>();
         for (int i = 0; i < 300; i++) {
-            // 👉 L'astuce mathématique pour éviter la boucle infinie !
             String emailUnique = "client" + i + "_" + faker.internet().emailAddress();
             Utilisateur u = Utilisateur.builder()
                     .email(emailUnique)
@@ -79,8 +78,16 @@ public class DataSeeder implements CommandLineRunner {
                     .prixTotal(prixBilletUnitaire)
                     .nombrePlacesTotal(capaciteVehicule) 
                     .statut(cibleStatut) 
+                    // On s'assure d'initialiser la liste
+                    .segments(new ArrayList<>())
                     .build();
+                    
             Voyage voyageSauvegarde = voyageService.creer(v);
+            
+            // Sécurité supplémentaire au cas où le service l'aurait écrasée
+            if (voyageSauvegarde.getSegments() == null) {
+                voyageSauvegarde.setSegments(new ArrayList<>());
+            }
 
             // --- Création des Segments ---
             int nbSegments = faker.number().numberBetween(1, 4);
@@ -107,11 +114,18 @@ public class DataSeeder implements CommandLineRunner {
                         .heureDepart(dateDepartPrecedente)
                         .heureArrivee(dateArrivee)
                         .build();
+                        
+                // 👉 LA 1ère LIGNE CRITIQUE : on attache le segment à la liste du voyage en mémoire
+                voyageSauvegarde.getSegments().add(s);
+                
                 segmentService.creer(s);
 
                 villeDepartSegment = villeArriveeSegment;
                 dateDepartPrecedente = dateArrivee.plusHours(faker.number().numberBetween(1, 5));
             }
+
+            // 👉 LA 2ème LIGNE CRITIQUE : on valide et scelle la relation dans la base de données !
+            voyageSauvegarde = voyageRepository.save(voyageSauvegarde);
 
             // --- REMPLISSAGE INTELLIGENT ---
             boolean doitEtreComplet = (i < 10 && !cibleStatut.equals("ANNULE"));
@@ -162,7 +176,7 @@ public class DataSeeder implements CommandLineRunner {
                 r.setBillets(billets);
                 reservationRepository.save(r); 
 
-                // 👉 CORRECTION : L'avis est créé peu importe le statut du voyage !
+                // L'avis est créé peu importe le statut du voyage !
                 if (statutRes.equals("CONFIRME") && faker.bool().bool()) {
                     Avis a = Avis.builder()
                             .voyage(voyageSauvegarde)

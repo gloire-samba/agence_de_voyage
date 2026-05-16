@@ -18,22 +18,35 @@ export class InscriptionComponent {
 
   formData = { email: '', motDePasse: '' };
   messageErreur = '';
-  hidePassword = true; // 👉 NOUVEAU
+  hidePassword = true;
+  isLoading = false; // 👉 NOUVEAU : Le verrou anti double-clic
 
-  togglePasswordVisibility() { // 👉 NOUVEAU
+  togglePasswordVisibility() { 
     this.hidePassword = !this.hidePassword;
   }
 
   onSubmit() {
+    // 👉 NOUVEAU : Si une requête est déjà en cours, on ignore le clic
+    if (this.isLoading) return; 
+
+    this.isLoading = true;
     this.messageErreur = '';
+    
     this.authService.register(this.formData).subscribe({
       next: () => {
         this.authService.login(this.formData.email, this.formData.motDePasse).subscribe({
-          next: () => this.router.navigate(['/recherche']),
-          error: () => this.router.navigate(['/login'])
+          next: () => {
+            this.isLoading = false;
+            this.router.navigate(['/recherche']);
+          },
+          error: () => {
+            this.isLoading = false;
+            this.router.navigate(['/login']);
+          }
         });
       },
       error: (err) => {
+        this.isLoading = false; // On déverrouille en cas d'erreur
         this.messageErreur = err.error?.error || "Erreur lors de l'inscription.";
         this.cdr.detectChanges();
       }

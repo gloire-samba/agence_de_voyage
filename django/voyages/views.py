@@ -176,6 +176,20 @@ class ReservationViewSet(viewsets.ModelViewSet):
             return Response(ReservationSerializer(reservation).data, status=status.HTTP_201_CREATED)
         except Exception as e:
             return Response({"erreur": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        
+    @action(detail=True, methods=['post'], url_path='echanger')
+    def echanger(self, request, pk=None):
+        try:
+            # Django récupère les données dans request.data
+            nouveau_voyage_id = request.data.get('nouveauVoyageId')
+            
+            if not nouveau_voyage_id:
+                return Response({"erreur": "ID du nouveau voyage manquant."}, status=status.HTTP_400_BAD_REQUEST)
+                
+            nouvelle_reservation = ReservationService.echanger(pk, nouveau_voyage_id)
+            return Response(self.get_serializer(nouvelle_reservation).data, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({"erreur": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])

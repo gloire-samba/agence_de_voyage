@@ -47,6 +47,11 @@ public class SecurityConfig {
                 .requestMatchers("/api/voyages/recherche-intelligente", "/api/voyages/recherche-vocale", "/api/voyages/avis-vocal").permitAll()
                 .requestMatchers("/api/paiement/create-intent").permitAll()
 
+                // 👉 1. Un utilisateur normal a le droit de voir et modifier son profil (ex: /api/utilisateurs/302)
+                .requestMatchers(HttpMethod.GET, "/api/utilisateurs/*").authenticated()
+                .requestMatchers(HttpMethod.PATCH, "/api/utilisateurs/*").authenticated()
+
+                // 👉 2. La gestion globale (lister tout le monde, supprimer) reste verrouillée pour l'Admin
                 .requestMatchers("/api/utilisateurs/**").hasAuthority("ROLE_ADMIN")
 
                 .requestMatchers(HttpMethod.POST, "/api/voyages/**", "/api/segments/**").hasAuthority("ROLE_ADMIN")

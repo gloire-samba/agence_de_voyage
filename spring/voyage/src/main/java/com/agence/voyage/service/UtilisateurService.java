@@ -1,11 +1,13 @@
 package com.agence.voyage.service;
 
-import com.agence.voyage.entity.Utilisateur;
-import com.agence.voyage.repository.UtilisateurRepository;
-import lombok.RequiredArgsConstructor;
+import java.util.List;
+
 import org.springframework.stereotype.Service;
 
-import java.util.List;
+import com.agence.voyage.entity.Utilisateur;
+import com.agence.voyage.repository.UtilisateurRepository;
+
+import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
@@ -31,15 +33,25 @@ public class UtilisateurService {
                 .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé avec l'id : " + id));
     }
 
-    // UPDATE
+    // UPDATE - 👉 C'EST ICI QUE SE TROUVE LA CORRECTION ANTI-CRASH
     public Utilisateur modifier(Long id, Utilisateur utilisateurDetails) {
         Utilisateur utilisateur = recupererParId(id);
-        utilisateur.setEmail(utilisateurDetails.getEmail());
-        // On ne modifie le mot de passe que s'il est fourni
+        
+        // On modifie l'email seulement s'il est fourni
+        if (utilisateurDetails.getEmail() != null && !utilisateurDetails.getEmail().isEmpty()) {
+            utilisateur.setEmail(utilisateurDetails.getEmail());
+        }
+        
+        // On modifie le mot de passe seulement s'il est fourni
         if (utilisateurDetails.getMotDePasse() != null && !utilisateurDetails.getMotDePasse().isEmpty()) {
             utilisateur.setMotDePasse(utilisateurDetails.getMotDePasse());
         }
-        utilisateur.setRole(utilisateurDetails.getRole());
+        
+        // On modifie le rôle seulement s'il est fourni (C'est ça qui causait l'erreur "NULL not allowed")
+        if (utilisateurDetails.getRole() != null && !utilisateurDetails.getRole().isEmpty()) {
+            utilisateur.setRole(utilisateurDetails.getRole());
+        }
+        
         return utilisateurRepository.save(utilisateur);
     }
 

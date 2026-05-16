@@ -11,6 +11,7 @@ public class WebConfig implements WebMvcConfigurer {
         // Autorise Angular à communiquer avec Spring
         registry.addMapping("/**")
                 .allowedOrigins("http://localhost:4200")
-                .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS");
+                // 👉 CORRECTION : Ajout de "PATCH" à la fin
+                .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH");
     }
 }

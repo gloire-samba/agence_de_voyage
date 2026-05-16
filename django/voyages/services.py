@@ -301,6 +301,26 @@ class ReservationService:
         Reservation.objects.filter(id=pk).delete()
         
     @staticmethod
+    def generer_pdf_billet(reservation):
+        """Génère le PDF en mémoire et retourne les octets"""
+        places = ", ".join([b.siege for b in reservation.billets.all()])
+        buffer = BytesIO()
+        p = canvas.Canvas(buffer)
+        p.setFont("Helvetica-Bold", 18)
+        p.drawString(180, 800, "CARTE D'EMBARQUEMENT" if reservation.statut != 'ANNULE' else "BILLET ANNULÉ")
+        p.setFont("Helvetica", 12)
+        p.drawString(100, 750, f"N° de Commande : #{reservation.id}")
+        p.drawString(100, 730, f"Passager : {reservation.utilisateur.email}")
+        p.drawString(100, 710, f"Trajet : {reservation.voyage.ville_depart} ➔ {reservation.voyage.ville_arrivee}")
+        p.drawString(100, 690, f"Siège(s) : {places}")
+        p.drawString(100, 670, f"Statut : {reservation.statut}")
+        p.showPage()
+        p.save()
+        pdf_bytes = buffer.getvalue()
+        buffer.close()
+        return pdf_bytes
+
+    @staticmethod
     @transaction.atomic
     def annuler(pk):
         reservation = Reservation.objects.get(id=pk)
@@ -311,35 +331,86 @@ class ReservationService:
             voyage.statut = 'A_VENIR'
             voyage.save()
 
+        # Remboursement Stripe
         if reservation.stripe_payment_id:
             try:
                 stripe.api_key = os.getenv('STRIPE_SECRET_KEY')
-                remboursement = stripe.Refund.create(payment_intent=reservation.stripe_payment_id)
-            except Exception as e:
+                stripe.Refund.create(payment_intent=reservation.stripe_payment_id)
+            except Exception:
                 pass
 
         reservation.save()
 
+        # 👉 Envoi du mail de remboursement AVEC LE PDF (comme demandé)
         if reservation.utilisateur and reservation.utilisateur.email:
-            sujet = f"🚫 Annulation de votre réservation #{reservation.id}"
-            contenu = f"Bonjour,\n\nVotre réservation a été ANNULÉE.\nUn remboursement total de {reservation.prix_paye}€ a été déclenché vers votre banque.\nÀ bientôt."
+            sujet = f"🚫 Annulation & Remboursement - Réservation #{reservation.id}"
+            contenu = f"Bonjour,\n\nVotre réservation a été ANNULÉE.\nUn remboursement de {reservation.prix_paye}€ a été effectué.\nVous trouverez le récapitulatif en pièce jointe."
             try:
-                send_mail(sujet, contenu, settings.EMAIL_HOST_USER, [reservation.utilisateur.email], fail_silently=False)
-            except Exception as e:
+                pdf_bytes = ReservationService.generer_pdf_billet(reservation)
+                email = EmailMessage(sujet, contenu, settings.EMAIL_HOST_USER, [reservation.utilisateur.email])
+                email.attach(f'Billet_Annule_{reservation.id}.pdf', pdf_bytes, 'application/pdf')
+                email.send(fail_silently=True)
+            except Exception:
                 pass
 
         return reservation
+
+    @staticmethod
+    @transaction.atomic
+    def echanger(old_res_id, nouveau_voyage_id):
+        old_res = Reservation.objects.get(id=old_res_id)
+        nouveau_voyage = Voyage.objects.get(id=nouveau_voyage_id)
+        nb_places = old_res.billets.count()
+
+        # 1. On annule l'ancienne réservation SANS déclencher le remboursement Stripe
+        old_res.statut = 'ANNULE'
+        old_res.save()
+        if old_res.voyage.statut == 'COMPLET':
+            old_res.voyage.statut = 'A_VENIR'
+            old_res.voyage.save()
+
+        # 2. On crée la nouvelle réservation (Transfert de fonds)
+        new_res = Reservation.objects.create(
+            voyage=nouveau_voyage,
+            utilisateur=old_res.utilisateur,
+            prix_paye=old_res.prix_paye, # Le client ne repaye pas
+            statut='CONFIRME',
+            date_confirmation=timezone.now(),
+            stripe_payment_id=old_res.stripe_payment_id
+        )
+
+        # 3. Attribution des nouveaux sièges
+        sieges = ReservationService.trouver_prochaines_places_libres(nouveau_voyage, nb_places)
+        for siege in sieges:
+            Billet.objects.create(siege=siege, reservation=new_res)
+
+        # Vérification capacité
+        places_occupees = Billet.objects.filter(reservation__voyage=nouveau_voyage).exclude(reservation__statut='ANNULE').count()
+        if places_occupees >= nouveau_voyage.nombre_places_total:
+            nouveau_voyage.statut = 'COMPLET'
+            nouveau_voyage.save()
+
+        # 4. Envoi du NOUVEAU billet par email
+        try:
+            pdf_bytes = ReservationService.generer_pdf_billet(new_res)
+            sujet = f"🔄 Échange de vol Confirmé - Nouvelle réservation #{new_res.id}"
+            contenu = f"Bonjour,\n\nSuite à un aléa, nous vous avons transféré sur un nouveau vol gratuitement.\nVoici votre nouvelle carte d'embarquement en pièce jointe."
+            email = EmailMessage(sujet, contenu, settings.EMAIL_HOST_USER, [new_res.utilisateur.email])
+            email.attach(f'Nouveau_Billet_{new_res.id}.pdf', pdf_bytes, 'application/pdf')
+            email.send(fail_silently=True)
+        except Exception as e:
+            print(e)
+
+        return new_res
     
             
 class RechercheIntelligenteService:
-    IA_API_URL = "http://127.0.0.1:8001/api/ia/analyser"
-
     @staticmethod
     def chercher_voyage(texte):
         try:
-            # 1. On interroge l'IA (qui va extraire duree_max_minutes)
+            # 👉 On attaque directement Hugging Face
             reponse = requests.post(
-                "http://127.0.0.1:8001/api/ia/analyser",
+                "https://elgronaldo-agence-de-voyage.hf.space/api/ia/analyser",
                 json={"texte": texte},
                 timeout=10.0
             )
@@ -350,7 +421,6 @@ class RechercheIntelligenteService:
             return Voyage.objects.none()
 
         # 👉 2. PRÉPARATION DE LA REQUÊTE AVEC CALCUL DES DATES
-        # On calcule le tout premier départ et la toute dernière arrivée de l'itinéraire
         resultats = Voyage.objects.annotate(
             depart_initial=Min('segments__heure_depart'),
             arrivee_finale=Max('segments__heure_arrivee')
@@ -378,7 +448,6 @@ class RechercheIntelligenteService:
         if criteres.get('escales_min') is not None or criteres.get('escales_max') is not None:
             resultats = resultats.annotate(nb_segments=Count('segments'))
             if criteres.get('escales_min') is not None:
-                # 1 escale = 2 segments
                 resultats = resultats.filter(nb_segments__gte=criteres['escales_min'] + 1)
             if criteres.get('escales_max') is not None:
                 resultats = resultats.filter(nb_segments__lte=criteres['escales_max'] + 1)
@@ -388,22 +457,16 @@ class RechercheIntelligenteService:
             resultats = resultats.filter(nombre_places_total=criteres['places_total'])
             
         if criteres.get('places_restantes_min') is not None:
-            # Soustraction : Capacité totale - billets vendus
             resultats = resultats.annotate(
                 places_occupees=Count('reservations__billets', filter=~Q(reservations__statut='ANNULE'))
             ).annotate(
                 places_restantes=F('nombre_places_total') - F('places_occupees')
             ).filter(places_restantes__gte=criteres['places_restantes_min'])
 
-        # ==========================================
-        # 👉 NOUVEAU : LE FILTRE SUR LA DURÉE MAXIMALE
-        # ==========================================
+        # Filtre sur la durée
         duree_max = criteres.get('duree_max_minutes')
         if duree_max is not None:
-            # On convertit le nombre de l'IA en véritable objet "Durée" pour Python
             max_timedelta = datetime.timedelta(minutes=duree_max)
-            
-            # On demande à la base de données de faire la soustraction (Arrivée - Départ)
             resultats = resultats.annotate(
                 duree_totale=ExpressionWrapper(
                     F('arrivee_finale') - F('depart_initial'), 
@@ -412,20 +475,25 @@ class RechercheIntelligenteService:
             ).filter(duree_totale__lte=max_timedelta)
 
         return resultats.distinct()
-    
+
     @staticmethod
     def transcrire_audio(fichier_audio):
         try:
+            # 👉 CORRECTION : On remet le curseur au début !
+            fichier_audio.seek(0)
             files = {'fichier': (fichier_audio.name, fichier_audio.read(), fichier_audio.content_type)}
+            
+            # 👉 On attaque directement Hugging Face
             reponse = requests.post(
-                "http://127.0.0.1:8001/api/ia/transcrire",
+                "https://elgronaldo-agence-de-voyage.hf.space/api/ia/transcrire",
                 files=files,
                 timeout=15.0
             )
+
             reponse.raise_for_status()
             return reponse.json().get('texte', "")
         except requests.exceptions.HTTPError as e:
-            if e.response.status_code in [429, 503]:
+            if e.response and e.response.status_code in [429, 503]:
                 raise Exception(e.response.json().get('detail', "Service IA saturé"))
             return ""
         except Exception as e:

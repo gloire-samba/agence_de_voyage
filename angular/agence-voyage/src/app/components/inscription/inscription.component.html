@@ -27,7 +27,10 @@
         </div>
       </div>
 
-      <button type="submit" class="btn-submit">S'inscrire</button>
+      <button type="submit" class="btn-submit" [disabled]="isLoading">
+        <span *ngIf="!isLoading">S'inscrire</span>
+        <span *ngIf="isLoading">Création en cours...</span>
+      </button>
 
       <div class="toggle-mode">
         Déjà un compte ? <a routerLink="/login">Connectez-vous ici</a>

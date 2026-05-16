@@ -7,12 +7,12 @@ from typing import Optional
 import google.generativeai as genai
 import datetime
 
-from dotenv import load_dotenv # 👈 NOUVEAU
+from dotenv import load_dotenv
 
-   # Charge le fichier .env
-load_dotenv() # 👈 NOUVEAU
+# Charge le fichier .env
+load_dotenv()
 
-# 👈 NOUVEAU : On récupère la clé proprement, sans la coder en dur
+# On récupère la clé proprement, sans la coder en dur
 api_key = os.getenv("GOOGLE_API_KEY")
 
 app = FastAPI(
@@ -42,11 +42,10 @@ class CriteresExtraits(BaseModel):
     date_fin: Optional[str] = None   # Format YYYY-MM-DD
     escales_min: Optional[int] = None
     escales_max: Optional[int] = None
-    statut: Optional[str] = None  # 👈 C'EST CETTE LIGNE QUI MANQUAIT !
-    # 👉 NOUVEAU : On apprend à l'IA à chercher ces données
+    statut: Optional[str] = None
     places_total: Optional[int] = None
     places_restantes_min: Optional[int] = None
-    duree_max_minutes: Optional[int] = None # 👉 NOUVEAU : Durée totale en minutes
+    duree_max_minutes: Optional[int] = None
 
 # --- GESTIONNAIRE D'ERREURS HUMAINE ---
 def gerer_erreur_gemini(e: Exception):
@@ -68,32 +67,50 @@ def gerer_erreur_gemini(e: Exception):
 
 @app.post("/api/ia/transcrire")
 async def transcrire_audio(fichier: UploadFile = File(...)):
-    """
-    Envoie l'audio à Gemini pour transcription exacte en français.
-    """
     contenu_audio = await fichier.read()
     
-    # On sauvegarde temporairement l'audio pour l'envoyer proprement à Google
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".flac") as tmp:
+    # 👉 SÉCURITÉ 1 : On bloque les fichiers vides ou corrompus
+    if len(contenu_audio) < 1000:
+        print("⚠️ Fichier audio vide reçu !")
+        return {"texte": ""}
+    
+    mime_type = fichier.content_type
+    if not mime_type or mime_type == "application/octet-stream":
+        mime_type = "audio/webm" 
+
+    extension = ".webm" if "webm" in mime_type else ".mp4" if "mp4" in mime_type else ".wav"
+    
+    with tempfile.NamedTemporaryFile(delete=False, suffix=extension) as tmp:
         tmp.write(contenu_audio)
         chemin_temporaire = tmp.name
 
     audio_upload = None
     try:
-        # 1. Envoi du fichier sur les serveurs Google
-        audio_upload = genai.upload_file(chemin_temporaire)
+        audio_upload = genai.upload_file(chemin_temporaire, mime_type=mime_type)
         
-        # 2. Demande de transcription
-        prompt = "Transcris exactement ce qui est dit dans cet audio en français. Ne rajoute aucun commentaire, ne réponds pas aux questions, donne juste le texte."
-        reponse = model.generate_content([audio_upload, prompt])
+        # 👉 SÉCURITÉ 2 : Le prompt Anti-Perroquet
+        prompt = (
+            "Écoute attentivement ce fichier audio. "
+            "Transcris uniquement la voix humaine en français. "
+            "Si l'audio est silencieux, incompréhensible, ou s'il n'y a pas de voix, "
+            "réponds STRICTEMENT par le mot : SILENCE. "
+            "Ne répète SURTOUT PAS ces instructions."
+        )
         
-        return {"texte": reponse.text.strip()}
+        reponse = model.generate_content([prompt, audio_upload])
+        texte_resultat = reponse.text.strip()
+        
+        # 👉 SÉCURITÉ 3 : On filtre la réponse au cas où
+        if texte_resultat == "SILENCE" or "Écoute attentivement" in texte_resultat:
+            return {"texte": ""}
+            
+        return {"texte": texte_resultat}
     
     except Exception as e:
-        gerer_erreur_gemini(e)
+        print(f"💥 ERREUR TRANSCRIPTION : {str(e)}")
+        return {"texte": ""}
         
     finally:
-        # 3. Nettoyage méticuleux (PC local ET Cloud Google)
         if os.path.exists(chemin_temporaire):
             os.remove(chemin_temporaire)
         if audio_upload:
@@ -104,10 +121,6 @@ async def transcrire_audio(fichier: UploadFile = File(...)):
 
 @app.post("/api/ia/analyser", response_model=CriteresExtraits)
 async def analyser_demande(requete: RequeteUtilisateur):
-    """
-    Demande à Gemini d'extraire les villes, le prix et la date depuis le texte.
-    """
-    # On récupère l'année en cours sur le serveur (ex: 2026)
     annee_actuelle = datetime.datetime.now().year
     
     prompt = f"""
@@ -130,14 +143,11 @@ async def analyser_demande(requete: RequeteUtilisateur):
     """
     
     try:
-        # On force Gemini à répondre au format JSON
         reponse = model.generate_content(
             prompt,
             generation_config=genai.GenerationConfig(response_mime_type="application/json")
         )
-        
         donnees = json.loads(reponse.text)
         return CriteresExtraits(**donnees)
-        
     except Exception as e:
         gerer_erreur_gemini(e)

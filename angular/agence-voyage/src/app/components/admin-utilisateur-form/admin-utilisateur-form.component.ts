@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, ChangeDetectorRef } from '@angular/core'; // 👉 Ajout
+import { Component, OnInit, inject, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -15,11 +15,11 @@ export class AdminUtilisateurFormComponent implements OnInit {
   private utilisateurService = inject(UtilisateurService);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
-  private cdr = inject(ChangeDetectorRef); // 👉 L'outil magique
+  private cdr = inject(ChangeDetectorRef);
 
   utilisateurId!: number;
   isLoading = true;
-  formUtilisateur = { email: '', role: 'ROLE_USER' };
+  formUtilisateur = { role: 'ROLE_USER' };
 
   ngOnInit() {
     const idParam = this.route.snapshot.paramMap.get('id');
@@ -33,11 +33,10 @@ export class AdminUtilisateurFormComponent implements OnInit {
     this.utilisateurService.getUn(this.utilisateurId).subscribe({
       next: (data: any) => {
         this.formUtilisateur = {
-          email: data.email,
           role: data.role || 'ROLE_USER'
         };
         this.isLoading = false;
-        this.cdr.detectChanges(); // 👉 Force l'affichage
+        this.cdr.detectChanges(); 
       },
       error: () => {
         this.isLoading = false;

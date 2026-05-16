@@ -10,41 +10,104 @@
     <table class="admin-table">
       <thead>
         <tr>
-          <th>ID</th>
-          <th>Voyage Actuel</th>
+          <th>N° Résa</th>
+          <th>Trajet actuel</th>
           <th>Date Résa</th>
-          <th>Prix Payé</th>
           <th>Statut</th>
-          <th>Échanger / Modifier</th>
+          <th>Actions Administrateur</th>
         </tr>
       </thead>
       <tbody>
         @for (r of reservations; track r.id) {
-          <tr>
+          <tr [style.opacity]="r.statut === 'ANNULE' ? '0.6' : '1'">
             <td><strong>#{{ r.id }}</strong></td>
+            <td>{{ r.voyage?.villeDepart || r.voyage?.ville_depart }} ➔ {{ r.voyage?.villeArrivee || r.voyage?.ville_arrivee }}</td>
+            <td>{{ (r.dateReservation || r.date_confirmation || r.date_reservation) | date:'short' }}</td>
             <td>
-              <select [(ngModel)]="r.voyage_id" style="padding: 5px; border-radius: 4px; border: 1px solid #cbd5e1;">
-                @for (v of voyagesDisponibles; track v.id) {
-                  <option [value]="v.id">#{{v.id}} : {{v.villeDepart || v.ville_depart}} -> {{v.villeArrivee || v.ville_arrivee}}</option>
-                }
-              </select>
-            </td>
-            <td>{{ (r.dateReservation || r.date_reservation) | date:'short' }}</td>
-            <td>{{ r.prixPaye || r.prix_paye }} €</td>
-            <td>
-              <select [(ngModel)]="r.statut" [ngClass]="r.statut" class="badge-statut">
-                <option value="CONFIRME">CONFIRME</option>
-                <option value="EN_ATTENTE">EN_ATTENTE</option>
-                <option value="ANNULE">ANNULE</option>
-              </select>
+              <span class="badge-statut" [ngClass]="r.statut">{{ r.statut }}</span>
             </td>
             <td class="action-cells">
-              <button class="btn-action btn-edit" (click)="mettreAJourReservation(r)">💾 Appliquer</button>
-              <button class="btn-action btn-delete" (click)="annulerReservation(r.id)">🚫 Annuler</button>
+              @if (r.statut === 'ANNULE' || r.statut === 'REMBOURSE') {
+                <span style="color: #ef4444; font-weight: bold; background: #fee2e2; padding: 6px 10px; border-radius: 6px; display: inline-block;">
+                  🚫 Client déjà remboursé
+                </span>
+              } @else if (r.statut === 'CONFIRME') {
+                <button class="btn-action btn-edit" (click)="preparerEchange(r)">🔄 Échanger</button>
+                <button class="btn-action btn-delete" (click)="annulerReservation(r.id)">💸 Annuler & Rembourser</button>
+              } @else {
+                <span style="color: #64748b; font-style: italic;">En attente de paiement</span>
+              }
             </td>
           </tr>
         }
       </tbody>
     </table>
+  }
+
+  @if (reservationAEchanger) {
+    <div style="margin-top: 50px; padding: 30px; background: #f8fafc; border: 2px dashed #3b82f6; border-radius: 12px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h3 style="color: #1e293b; margin: 0;">🔄 Reloger le billet #{{ reservationAEchanger.id }}</h3>
+        <button class="btn-action" style="color: #ef4444;" (click)="annulerEchange()">✖ Annuler l'échange</button>
+      </div>
+
+      <div style="background-color: #fef08a; color: #854d0e; padding: 12px 15px; border-radius: 8px; margin-bottom: 20px; font-weight: bold; border: 1px solid #fde047; display: flex; align-items: center; gap: 10px;">
+        <span style="font-size: 1.2rem;">💡</span>
+        <span>Le dossier de ce client contient <strong>{{ getNbPlacesAEchanger() }} place(s)</strong>. Il est conseillé de filtrer les vols ayant au moins cette capacité.</span>
+      </div>
+
+      <div class="filter-row">
+        <div class="filter-group">
+          <label>Départ</label>
+          <input type="text" [(ngModel)]="filtreDepart" placeholder="Ex: Paris...">
+        </div>
+        <div class="filter-group">
+          <label>Arrivée</label>
+          <input type="text" [(ngModel)]="filtreArrivee" placeholder="Ex: Lyon...">
+        </div>
+        <div class="filter-group">
+          <label>Date</label>
+          <input type="date" [(ngModel)]="filtreDate">
+        </div>
+        <div class="filter-group">
+          <label>Places Min.</label>
+          <input type="number" [(ngModel)]="filtrePlaces" placeholder="Ex: {{ getNbPlacesAEchanger() }}">
+        </div>
+      </div>
+
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>ID Vol</th>
+            <th>Itinéraire</th>
+            <th>Places restantes</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (v of voyagesFiltres; track v.id) {
+            <tr>
+              <td>#{{ v.id }}</td>
+              <td>{{ v.villeDepart || v.ville_depart }} ➔ {{ v.villeArrivee || v.ville_arrivee }}</td>
+              <td><strong>{{ v.placesRestantes || v.places_restantes }}</strong></td>
+              <td>
+                @if ((v.placesRestantes || v.places_restantes) < getNbPlacesAEchanger()) {
+                  <div style="display: flex; flex-direction: column; gap: 5px;">
+                    <span style="color: #ef4444; font-size: 0.85rem; font-weight: bold;">❌ Pas assez de places</span>
+                    <button class="btn-action" style="background: #e2e8f0; color: #94a3b8; border: none; cursor: not-allowed;" disabled>
+                      Transfert impossible
+                    </button>
+                  </div>
+                } @else {
+                  <button class="btn-action" style="background: #10b981; color: white; border: none;" (click)="validerEchange(v.id)">
+                    ✅ Transférer sur ce vol
+                  </button>
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
   }
 </div>

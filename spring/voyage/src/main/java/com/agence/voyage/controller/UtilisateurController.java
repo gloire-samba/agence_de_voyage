@@ -1,13 +1,23 @@
 package com.agence.voyage.controller;
 
-import com.agence.voyage.entity.Utilisateur;
-import com.agence.voyage.service.UtilisateurService;
-import lombok.RequiredArgsConstructor;
+import java.util.List;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RestController;
 
-import java.util.List;
+import com.agence.voyage.entity.Utilisateur;
+import com.agence.voyage.service.UtilisateurService;
+
+import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequestMapping("/api/utilisateurs")
@@ -37,7 +47,8 @@ public class UtilisateurController {
         return ResponseEntity.ok(utilisateurService.recupererParId(id));
     }
 
-    @PutMapping("/{id}")
+    // 👉 On autorise PUT et PATCH pour que le Profil et l'Admin fonctionnent
+    @RequestMapping(value = "/{id}", method = {RequestMethod.PUT, RequestMethod.PATCH})
     public ResponseEntity<Utilisateur> modifier(@PathVariable Long id, @RequestBody Utilisateur utilisateurDetails) {
         return ResponseEntity.ok(utilisateurService.modifier(id, utilisateurDetails));
     }

@@ -1,20 +1,20 @@
 package com.agence.voyage.service;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
 import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
-import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
@@ -29,15 +29,14 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.RequiredArgsConstructor;
 
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
-
 @Service
 @RequiredArgsConstructor
 public class IaClientService {
 
     private final VoyageRepository voyageRepository;
-    private final String IA_API_URL = "http://127.0.0.1:8001/api/ia/analyser";
+    // 👉 Les URLs directes vers Hugging Face
+    private final String IA_API_URL_ANALYSER = "https://elgronaldo-agence-de-voyage.hf.space/api/ia/analyser";
+    private final String IA_API_URL_TRANSCRIRE = "https://elgronaldo-agence-de-voyage.hf.space/api/ia/transcrire";
 
     public List<Voyage> chercherVoyageAvecIA(String phraseUtilisateur) {
         SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
@@ -46,10 +45,11 @@ public class IaClientService {
         RestTemplate restTemplate = new RestTemplate(factory);
 
         CriteresIA criteres = new CriteresIA();
+        Map<String, String> requestBody = Map.of("texte", phraseUtilisateur);
 
         try {
-            Map<String, String> requestBody = Map.of("texte", phraseUtilisateur);
-            criteres = restTemplate.postForObject(IA_API_URL, requestBody, CriteresIA.class);
+            System.out.println("🔄 Envoi de l'analyse à Hugging Face...");
+            criteres = restTemplate.postForObject(IA_API_URL_ANALYSER, requestBody, CriteresIA.class);
             System.out.println("🤖 IA a compris : " + criteres);
 
         } catch (HttpClientErrorException | HttpServerErrorException e) {
@@ -67,16 +67,10 @@ public class IaClientService {
             System.err.println("⚠️ Erreur HTTP inattendue : " + e.getMessage());
             return new ArrayList<>();
 
-        } catch (ResourceAccessException e) {
-            System.err.println("⚠️ L'IA est injoignable ou trop lente. Fallback activé !");
-            return new ArrayList<>();
-
         } catch (Exception e) {
-            System.err.println("⚠️ Erreur générale : " + e.getMessage());
+            System.err.println("⚠️ Erreur générale IA : " + e.getMessage());
             return new ArrayList<>();
         }
-
-        // 👉 CORRECTION : Suppression totale du bloc qui bloquait les dates de début dans le passé
 
         String fuzzyDepart = criteres.getVilleDepart() != null ? "%" + criteres.getVilleDepart().toLowerCase() + "%" : null;
         String fuzzyArrivee = criteres.getVilleArrivee() != null ? "%" + criteres.getVilleArrivee().toLowerCase() + "%" : null;
@@ -94,9 +88,9 @@ public class IaClientService {
                 criteres.getDateDebut(),
                 criteres.getDateFin(),
                 criteres.getStatut(),
-                criteres.getPlacesTotal(), // NOUVEAU
-                criteres.getPlacesRestantesMin(), // NOUVEAU 
-                criteres.getDureeMaxMinutes() // 👉 Ajout de l'argument
+                criteres.getPlacesTotal(),
+                criteres.getPlacesRestantesMin(),
+                criteres.getDureeMaxMinutes()
         );
 
         if (resultats.isEmpty()) {
@@ -107,6 +101,7 @@ public class IaClientService {
         return resultats;
     }
 
+    @SuppressWarnings("unchecked")
     public String transcrireAudio(MultipartFile fichierAudio) {
         RestTemplate restTemplate = new RestTemplate();
         
@@ -119,11 +114,8 @@ public class IaClientService {
 
             HttpEntity<MultiValueMap<String, Object>> requestEntity = new HttpEntity<>(body, headers);
 
-            Map<String, String> response = restTemplate.postForObject(
-                "http://127.0.0.1:8001/api/ia/transcrire", 
-                requestEntity, 
-                Map.class
-            );
+            System.out.println("🔄 Envoi de l'audio à Hugging Face...");
+            Map<String, String> response = restTemplate.postForObject(IA_API_URL_TRANSCRIRE, requestEntity, Map.class);
 
             return response != null ? response.get("texte") : "";
 
@@ -159,7 +151,6 @@ public class IaClientService {
         @JsonProperty("statut")
         private String statut;
 
-        // 👉 NOUVEAU
         @JsonProperty("places_total")
         private Integer placesTotal;
         
@@ -167,6 +158,6 @@ public class IaClientService {
         private Integer placesRestantesMin;
 
         @JsonProperty("duree_max_minutes")
-        private Integer dureeMaxMinutes; // 👉 Récupère la valeur calculée par l'IA
+        private Integer dureeMaxMinutes; 
     }
 }

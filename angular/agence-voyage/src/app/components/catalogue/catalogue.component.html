@@ -68,7 +68,7 @@
 
             <div class="prix-block">
               <span class="prix-label">À partir de </span>
-              <span class="prix-valeur">{{ getPrix(v) }} €</span>
+              <span class="prix-valeur">{{ getPrix(v) * (placesSelectionnees[v.id] || 1) }} €</span>
             </div>
           </div>
 
