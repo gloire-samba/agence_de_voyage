@@ -15,6 +15,7 @@ services:
       - "8080:8080"
     environment:
       - SPRING_JPA_HIBERNATE_DDL_AUTO=update
+      - DB_PATH=/app/database/voyagedb
     volumes:
       - ./spring_data:/app/database
     init: true
@@ -24,3 +25,15 @@ services:
     ports:
       - "4200:80"
     init: true
+
+  react:
+      build: ./react/agence-de-voyage-react
+      ports:
+        - "5173:5173"
+      volumes:
+        - ./react/agence-de-voyage-react:/app
+        - /app/node_modules # Évite d'écraser les modules Linux du conteneur par ceux de ton PC Windows/Mac
+      environment:
+        # Force Vite à surveiller activement les fichiers (vital pour le hot-reload dans Docker)
+        - CHOKIDAR_USEPOLLING=true 
+      init: true

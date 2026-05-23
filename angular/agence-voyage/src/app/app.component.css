@@ -133,3 +133,28 @@
   border-color: #007bff;
   box-shadow: 0 2px 8px rgba(0, 123, 255, 0.3);
 }
+
+/* --- NOUVEAU : STYLE DU BADGE DE STATUT --- */
+.brand-section {
+  display: flex;
+  align-items: center;
+}
+
+.status-badge {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  padding: 6px 15px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 800;
+  margin-left: 20px;
+  box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.status-badge .divider {
+  color: #cbd5e1;
+  font-weight: normal;
+}

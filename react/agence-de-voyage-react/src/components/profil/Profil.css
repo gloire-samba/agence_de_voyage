@@ -1,0 +1,16 @@
+.profil-container { max-width: 500px; margin: 40px auto; font-family: sans-serif; }
+.subtitle { color: #64748b; margin-bottom: 20px; }
+.form-card { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+.form-group { margin-bottom: 20px; }
+.form-group label { display: block; margin-bottom: 8px; font-weight: bold; color: #334155; }
+.form-group input { width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box; }
+.btn-save { width: 100%; padding: 12px; background-color: #3b82f6; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; transition: 0.2s; }
+.btn-save:hover { background-color: #2563eb; }
+.btn-save:disabled { background-color: #94a3b8; cursor: not-allowed; }
+.alert { padding: 10px; border-radius: 6px; margin-bottom: 20px; background-color: #fee2e2; color: #ef4444; }
+.alert.success { background-color: #dcfce3; color: #10b981; }
+/* Le CSS du petit œil ! */
+.password-wrapper { position: relative; display: flex; align-items: center; }
+.password-wrapper input { padding-right: 40px; }
+.btn-eye { position: absolute; right: 10px; background: none; border: none; font-size: 1.2rem; cursor: pointer; padding: 0; outline: none; }
+.btn-eye:hover { transform: scale(1.1); }

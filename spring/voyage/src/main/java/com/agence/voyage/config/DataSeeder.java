@@ -41,33 +41,48 @@ public class DataSeeder implements CommandLineRunner {
             System.out.println("✅ Admin créé (admin@voyage.com / admin123)");
         }
 
-        if (utilisateurRepository.count() > 1) {
-            System.out.println("✅ Base de données déjà peuplée.");
-            return;
+        // 👉 L'ASTUCE : Mode Initial vs Mode Dynamique
+        long nbUsersActuels = utilisateurRepository.count();
+        boolean estInitial = nbUsersActuels <= 1;
+        
+        int nbUsersACreer = estInitial ? 300 : 15;
+        int nbVoyagesACreer = estInitial ? 100 : 10;
+
+        if (estInitial) {
+            System.out.println("⏳ [MODE INITIAL] Génération massive (300 users, 100 voyages)...");
+        } else {
+            System.out.println("🌱 [MODE DYNAMIQUE] Ajout de " + nbUsersACreer + " users et " + nbVoyagesACreer + " voyages pour simuler de la vie...");
         }
 
-        System.out.println("⏳ Génération massive des fausses données en cours...");
         Faker faker = new Faker(new Locale("fr"));
         
-        // 2. Création de 300 Utilisateurs (La foule !)
-        List<Utilisateur> utilisateurs = new ArrayList<>();
-        for (int i = 0; i < 300; i++) {
-            String emailUnique = "client" + i + "_" + faker.internet().emailAddress();
+        // 2. Création des nouveaux Utilisateurs
+        for (int i = 0; i < nbUsersACreer; i++) {
+            // Garantie d'unicité avec le timestamp
+            String emailUnique = "client_" + System.currentTimeMillis() + "_" + i + "_" + faker.internet().emailAddress();
             Utilisateur u = Utilisateur.builder()
                     .email(emailUnique)
                     .motDePasse("password123")
                     .role("ROLE_USER")
                     .build();
-            utilisateurs.add(utilisateurService.creer(u));
+            utilisateurService.creer(u);
         }
 
-        // 3. Création de 100 Voyages
-        for (int i = 0; i < 100; i++) {
+        // On récupère la base complète pour faire interagir anciens et nouveaux !
+        List<Utilisateur> tousLesUtilisateurs = utilisateurRepository.findAll();
+
+        // 3. Création des Voyages
+        for (int i = 0; i < nbVoyagesACreer; i++) {
             String villeDepart = faker.address().cityName();
             String villeArrivee = faker.address().cityName();
             
-            // Répartition des statuts
-            String cibleStatut = (i < 50) ? "A_VENIR" : (i < 80) ? "EN_COURS" : (i < 95) ? "TERMINE" : "ANNULE";
+            // Répartition probabiliste dynamique
+            int randStatut = faker.number().numberBetween(0, 100);
+            String cibleStatut;
+            if (randStatut < 50) cibleStatut = "A_VENIR";
+            else if (randStatut < 80) cibleStatut = "EN_COURS";
+            else if (randStatut < 95) cibleStatut = "TERMINE";
+            else cibleStatut = "ANNULE";
             
             int capaciteVehicule = faker.number().numberBetween(20, 600);
             BigDecimal prixBilletUnitaire = BigDecimal.valueOf(faker.number().randomDouble(2, 50, 800));
@@ -78,16 +93,11 @@ public class DataSeeder implements CommandLineRunner {
                     .prixTotal(prixBilletUnitaire)
                     .nombrePlacesTotal(capaciteVehicule) 
                     .statut(cibleStatut) 
-                    // On s'assure d'initialiser la liste
                     .segments(new ArrayList<>())
                     .build();
                     
             Voyage voyageSauvegarde = voyageService.creer(v);
-            
-            // Sécurité supplémentaire au cas où le service l'aurait écrasée
-            if (voyageSauvegarde.getSegments() == null) {
-                voyageSauvegarde.setSegments(new ArrayList<>());
-            }
+            if (voyageSauvegarde.getSegments() == null) voyageSauvegarde.setSegments(new ArrayList<>());
 
             // --- Création des Segments ---
             int nbSegments = faker.number().numberBetween(1, 4);
@@ -115,20 +125,17 @@ public class DataSeeder implements CommandLineRunner {
                         .heureArrivee(dateArrivee)
                         .build();
                         
-                // 👉 LA 1ère LIGNE CRITIQUE : on attache le segment à la liste du voyage en mémoire
                 voyageSauvegarde.getSegments().add(s);
-                
                 segmentService.creer(s);
 
                 villeDepartSegment = villeArriveeSegment;
                 dateDepartPrecedente = dateArrivee.plusHours(faker.number().numberBetween(1, 5));
             }
 
-            // 👉 LA 2ème LIGNE CRITIQUE : on valide et scelle la relation dans la base de données !
             voyageSauvegarde = voyageRepository.save(voyageSauvegarde);
 
             // --- REMPLISSAGE INTELLIGENT ---
-            boolean doitEtreComplet = (i < 10 && !cibleStatut.equals("ANNULE"));
+            boolean doitEtreComplet = (faker.number().numberBetween(0, 100) < 10 && !cibleStatut.equals("ANNULE"));
             int nbPlacesACreer;
             
             if (doitEtreComplet) {
@@ -141,16 +148,16 @@ public class DataSeeder implements CommandLineRunner {
             int placesDejaAssignees = 0;
 
             while (placesDejaAssignees < nbPlacesACreer) {
-                Utilisateur clientRandom = utilisateurs.get(faker.number().numberBetween(0, utilisateurs.size()));
+                // L'IA pioche au hasard dans toute la base (anciens et nouveaux utilisateurs confondus)
+                Utilisateur clientRandom = tousLesUtilisateurs.get(faker.number().numberBetween(0, tousLesUtilisateurs.size()));
                 
                 int nbPlacesDemande = faker.number().numberBetween(1, 6);
-                
                 if (placesDejaAssignees + nbPlacesDemande > nbPlacesACreer) {
                     nbPlacesDemande = nbPlacesACreer - placesDejaAssignees;
                 }
 
-                int randStatut = faker.number().numberBetween(0, 10);
-                String statutRes = (randStatut < 7) ? "CONFIRME" : (randStatut < 9) ? "EN_ATTENTE" : "ANNULE";
+                int randResa = faker.number().numberBetween(0, 10);
+                String statutRes = (randResa < 7) ? "CONFIRME" : (randResa < 9) ? "EN_ATTENTE" : "ANNULE";
                 LocalDateTime dateConf = statutRes.equals("CONFIRME") ? LocalDateTime.now().minusDays(faker.number().numberBetween(1, 20)) : null;
 
                 Reservation r = Reservation.builder()
@@ -176,7 +183,7 @@ public class DataSeeder implements CommandLineRunner {
                 r.setBillets(billets);
                 reservationRepository.save(r); 
 
-                // L'avis est créé peu importe le statut du voyage !
+                // Avis aléatoires
                 if (statutRes.equals("CONFIRME") && faker.bool().bool()) {
                     Avis a = Avis.builder()
                             .voyage(voyageSauvegarde)
@@ -194,6 +201,6 @@ public class DataSeeder implements CommandLineRunner {
             }
         }
 
-        System.out.println("🚀 Génération massive terminée avec succès !");
+        System.out.println("✨ Mise à jour terminée ! La BDD compte désormais " + utilisateurRepository.count() + " utilisateurs et " + voyageRepository.count() + " voyages.");
     }
 }

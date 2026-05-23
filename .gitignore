@@ -27,3 +27,4 @@ django/.env
 
 spring/voyage/data
 spring_data
+db

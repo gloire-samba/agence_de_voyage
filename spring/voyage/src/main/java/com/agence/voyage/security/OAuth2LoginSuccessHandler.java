@@ -11,6 +11,7 @@ import org.springframework.stereotype.Component;
 import com.agence.voyage.entity.Utilisateur;
 import com.agence.voyage.repository.UtilisateurRepository;
 
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -37,17 +38,42 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
                 .orElseGet(() -> {
                     Utilisateur newUser = new Utilisateur();
                     newUser.setEmail(finalEmail);
-                    newUser.setMotDePasse(UUID.randomUUID().toString()); // MDP aléatoire pour bloquer la co classique
+                    newUser.setMotDePasse(UUID.randomUUID().toString());
                     newUser.setRole("ROLE_USER");
                     return utilisateurRepository.save(newUser);
                 });
 
         String token = jwtService.genererToken(utilisateur);
 
-        // Renvoie vers Angular avec le token
-        String targetUrl = "http://localhost:4200/login?token=" + token 
+        // 👉 Lecture exclusive du Cookie qu'on a créé dans le contrôleur
+        String frontend = null;
+        if (request.getCookies() != null) {
+            for (Cookie cookie : request.getCookies()) {
+                if ("oauth_frontend_origin".equals(cookie.getName())) {
+                    frontend = cookie.getValue();
+                    break;
+                }
+            }
+        }
+
+        // Valeur par défaut : Angular
+        String frontendUrl = "http://localhost:4200"; 
+        
+        // Si le cookie dit react, on redirige vers Vite
+        if ("react".equals(frontend)) {
+            frontendUrl = "http://localhost:5173";
+        }
+
+        // Nettoyage du cookie
+        Cookie cookieNettoyage = new Cookie("oauth_frontend_origin", null);
+        cookieNettoyage.setPath("/");
+        cookieNettoyage.setMaxAge(0);
+        response.addCookie(cookieNettoyage);
+
+        String targetUrl = frontendUrl + "/login?token=" + token 
                          + "&id=" + utilisateur.getId() 
-                         + "&role=" + utilisateur.getRole();
+                         + "&role=" + utilisateur.getRole()
+                         + "&email=" + utilisateur.getEmail();
                          
         getRedirectStrategy().sendRedirect(request, response, targetUrl);
     }

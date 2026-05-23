@@ -5,6 +5,7 @@ import com.agence.voyage.repository.UtilisateurRepository;
 import com.agence.voyage.security.JwtService;
 import com.agence.voyage.service.EmailService;
 
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -13,6 +14,8 @@ import org.springframework.web.bind.annotation.*;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import jakarta.servlet.http.Cookie;
+import java.io.IOException;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -119,5 +122,18 @@ public class AuthRestController {
             utilisateurRepository.save(user);
             return ResponseEntity.ok().build();
         }).orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    // 👉 LA NOUVELLE MÉTHODE INFALLIBLE POUR OAUTH2
+    @GetMapping("/init-social")
+    public void initSocialLogin(@RequestParam String fournisseur, @RequestParam(defaultValue = "angular") String frontend, HttpServletResponse response) throws IOException {
+        // On crée un Cookie sécurisé et isolé
+        Cookie cookie = new Cookie("oauth_frontend_origin", frontend);
+        cookie.setPath("/");
+        cookie.setMaxAge(300); // Valable 5 minutes
+        response.addCookie(cookie);
+        
+        // On redirige ENFIN vers Spring Security, maintenant que le cookie est bien en place
+        response.sendRedirect("/oauth2/authorization/" + fournisseur);
     }
 }

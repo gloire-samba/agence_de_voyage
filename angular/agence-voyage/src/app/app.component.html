@@ -3,8 +3,17 @@
     <div class="logo">
       <span class="icon">✈️</span> IA Travel
     </div>
+
+    <div class="status-badge">
+        <span style="color: #dd0031;">🖥️ Front: Angular</span>
+        <span class="divider">|</span>
+        <span [ngStyle]="{'color': serveurActif === 'spring' ? '#28a745' : '#007bff'}">
+          🗄️ Back: {{ serveurActif === 'spring' ? 'Spring' : 'Django' }}
+        </span>
+    </div>
     
     <div class="backend-selector">
+      <button type="button" style="background-color: #00d8ff; color: #1c1d21; font-weight: bold;" (click)="basculerVersReact()">⚛️ Vue React</button>
       <button 
         [class.active-spring]="serveurActif === 'spring'" 
         (click)="changerServeur('spring')">
@@ -18,27 +27,16 @@
     </div>
     
     <nav class="nav-links">
-      <!-- On n'affiche les boutons que si quelqu'un est connecté -->
       @if (authService.isLoggedIn()) {
-        
-        <a routerLink="/recherche" routerLinkActive="active">
-          🔍 Rechercher un vol
-        </a>
-        
-        <a routerLink="/historique" routerLinkActive="active">
-          👤 Mon Historique
-        </a>
-
-        <a routerLink="/profil" routerLinkActive="active">
-          ⚙️ Mon Profil
-        </a>
+        <a routerLink="/recherche" routerLinkActive="active">🔍 Rechercher un vol</a>
+        <a routerLink="/historique" routerLinkActive="active">👤 Mon Historique</a>
+        <a routerLink="/profil" routerLinkActive="active">⚙️ Mon Profil</a>
 
         @if (authService.isAdmin()) {
           <button class="btn-admin" (click)="allerAuDashboard()">🛡️ Dashboard Admin</button>
         }
 
         <button class="btn-logout" (click)="deconnexion()">Déconnexion</button>
-
       }
     </nav>
   </header>

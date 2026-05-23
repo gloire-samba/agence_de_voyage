@@ -8,10 +8,11 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 public class WebConfig implements WebMvcConfigurer {
     @Override
     public void addCorsMappings(CorsRegistry registry) {
-        // Autorise Angular à communiquer avec Spring
+        
+        // Autorise Angular ET React à communiquer avec Spring
         registry.addMapping("/**")
-                .allowedOrigins("http://localhost:4200")
-                // 👉 CORRECTION : Ajout de "PATCH" à la fin
+                // 👉 AJOUT ICI : On déclare les deux ports
+                .allowedOrigins("http://localhost:4200", "http://localhost:5173")
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH");
     }
 }

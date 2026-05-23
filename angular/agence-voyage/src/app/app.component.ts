@@ -39,4 +39,11 @@ export class AppComponent {
     this.authService.logout()
     this.router.navigate(['/login']);
   }
+
+  basculerVersReact() {
+    // 1. On déconnecte proprement l'utilisateur d'Angular
+    this.authService.logout();
+    // 2. On le redirige vers le port de Vite/React
+    window.location.href = 'http://localhost:5173/login';
+  }
 }

@@ -302,11 +302,22 @@ class GoogleLoginView(APIView):
     authentication_classes = []
 
     def get(self, request):
-        client_id = os.getenv('GOOGLE_CLIENT_ID')
-        redirect_uri = "http://localhost:8000/accounts/google/login/callback/"
-        scope = "email profile"
-        url = f"https://accounts.google.com/o/oauth2/v2/auth?client_id={client_id}&redirect_uri={redirect_uri}&response_type=code&scope={scope}"
-        return redirect(url)
+        # On récupère le frontend demandeur (react ou angular). Par défaut angular.
+        frontend = request.GET.get('frontend', 'angular')
+        redirect_uri = request.build_absolute_uri('/accounts/google/login/callback/')
+        
+        # On injecte le nom du front dans le paramètre 'state' d'OAuth2
+        params = {
+            'client_id': os.getenv('GOOGLE_CLIENT_ID'),
+            'redirect_uri': redirect_uri,
+            'response_type': 'code',
+            'scope': 'email profile',
+            'state': frontend  # <-- Transmis de façon sécurisée à Google
+        }
+        
+        auth_url = "https://accounts.google.com/o/oauth2/v2/auth?" + urllib.parse.urlencode(params)
+        return redirect(auth_url)
+
 
 class GoogleCallbackView(APIView):
     permission_classes = [AllowAny]
@@ -314,42 +325,46 @@ class GoogleCallbackView(APIView):
 
     def get(self, request):
         code = request.GET.get('code')
+        # Google nous renvoie le paramètre 'state' intact ('react' ou 'angular')
+        frontend = request.GET.get('state', 'angular')
+        
+        redirect_uri = request.build_absolute_uri('/accounts/google/login/callback/')
+        
         token_url = "https://oauth2.googleapis.com/token"
         data = {
             'code': code,
             'client_id': os.getenv('GOOGLE_CLIENT_ID'),
             'client_secret': os.getenv('GOOGLE_CLIENT_SECRET'),
-            'redirect_uri': "http://localhost:8000/accounts/google/login/callback/",
+            'redirect_uri': redirect_uri,
             'grant_type': 'authorization_code'
         }
+        
         res = requests.post(token_url, data=data)
         access_token = res.json().get('access_token')
-
-        user_res = requests.get("https://www.googleapis.com/oauth2/v2/userinfo", headers={"Authorization": f"Bearer {access_token}"})
-        email = user_res.json().get('email')
-
-        user, created = Utilisateur.objects.get_or_create(
+        
+        user_info_res = requests.get(
+            "https://www.googleapis.com/oauth2/v2/userinfo",
+            headers={'Authorization': f'Bearer {access_token}'}
+        )
+        user_info = user_info_res.json()
+        email = user_info.get('email')
+        
+        utilisateur, created = Utilisateur.objects.get_or_create(
             email=email,
-            defaults={'mot_de_passe': str(uuid.uuid4()), 'role': 'ROLE_USER'}
+            defaults={
+                'mot_de_passe': str(uuid.uuid4()),
+                'role': 'ROLE_USER'
+            }
         )
         
-        # 👉 ENVOI DU MAIL DE BIENVENUE GOOGLE
-        if created:
-            try:
-                send_mail(
-                    "Bienvenue chez Agence de Voyage ✈️",
-                    "Bonjour !\n\nVotre compte a été créé avec succès via Google.\n\nL'équipe.",
-                    settings.EMAIL_HOST_USER,
-                    [email],
-                    fail_silently=True
-                )
-            except Exception:
-                pass
+        token = JwtService.generer_token(utilisateur)
         
-        token = JwtService.generer_token(user)
-        redirect_url = f"http://localhost:4200/login?token={token}&id={user.id}&role={user.role}&email={user.email}"
-        return redirect(redirect_url)
-
+        # Choix dynamique de l'URL du frontend
+        frontend_url = "http://localhost:5173" if frontend == 'react' else "http://localhost:4200"
+        
+        target_url = f"{frontend_url}/login?token={token}&id={utilisateur.id}&role={utilisateur.role}&email={utilisateur.email}"
+        return redirect(target_url)
+    
 # ==========================================
 # 🐙 GITHUB OAUTH2 MANUEL
 # ==========================================
@@ -358,10 +373,16 @@ class GithubLoginView(APIView):
     authentication_classes = []
 
     def get(self, request):
-        client_id = os.getenv('GITHUB_CLIENT_ID')
-        redirect_uri = "http://localhost:8000/accounts/github/login/callback/"
-        url = f"https://github.com/login/oauth/authorize?client_id={client_id}&redirect_uri={redirect_uri}&scope=user:email"
-        return redirect(url)
+        frontend = request.GET.get('frontend', 'angular')
+        
+        params = {
+            'client_id': os.getenv('GITHUB_CLIENT_ID'),
+            'scope': 'user:email',
+            'state': frontend # <-- Transmis de façon sécurisée à GitHub
+        }
+        auth_url = "https://github.com/login/oauth/authorize?" + urllib.parse.urlencode(params)
+        return redirect(auth_url)
+
 
 class GithubCallbackView(APIView):
     permission_classes = [AllowAny]
@@ -369,48 +390,59 @@ class GithubCallbackView(APIView):
 
     def get(self, request):
         code = request.GET.get('code')
+        # GitHub nous renvoie le 'state' intact
+        frontend = request.GET.get('state', 'angular')
+        
+        token_url = "https://github.com/login/oauth/access_token"
+        headers = {'Accept': 'application/json'}
         data = {
             'client_id': os.getenv('GITHUB_CLIENT_ID'),
             'client_secret': os.getenv('GITHUB_CLIENT_SECRET'),
-            'code': code,
-            'redirect_uri': "http://localhost:8000/accounts/github/login/callback/"
+            'code': code
         }
-        headers = {'Accept': 'application/json'}
-        res = requests.post('https://github.com/login/oauth/access_token', data=data, headers=headers)
-        access_token = res.json().get('access_token')
-
-        user_res = requests.get('https://api.github.com/user', headers={'Authorization': f"Bearer {access_token}"})
-        email = user_res.json().get('email')
         
-        if not email:
-            emails_res = requests.get('https://api.github.com/user/emails', headers={'Authorization': f"Bearer {access_token}"})
-            for e in emails_res.json():
+        res = requests.post(token_url, headers=headers, data=data)
+        access_token = res.json().get('access_token')
+        
+        emails_res = requests.get(
+            "https://api.github.com/user/emails",
+            headers={'Authorization': f'Bearer {access_token}'}
+        )
+        emails = emails_res.json()
+        
+        primary_email = None
+        if isinstance(emails, list):
+            for e in emails:
                 if e.get('primary'):
-                    email = e.get('email')
+                    primary_email = e.get('email')
                     break
+        
+        if not primary_email and isinstance(emails, list) and len(emails) > 0:
+            primary_email = emails[0].get('email')
+            
+        if not primary_email:
+            user_res = requests.get(
+                "https://api.github.com/user",
+                headers={'Authorization': f'Bearer {access_token}'}
+            )
+            primary_email = user_res.json().get('login') + "@github.com"
 
-        user, created = Utilisateur.objects.get_or_create(
-            email=email,
-            defaults={'mot_de_passe': str(uuid.uuid4()), 'role': 'ROLE_USER'}
+        utilisateur, created = Utilisateur.objects.get_or_create(
+            email=primary_email,
+            defaults={
+                'mot_de_passe': str(uuid.uuid4()),
+                'role': 'ROLE_USER'
+            }
         )
         
-        # 👉 ENVOI DU MAIL DE BIENVENUE GITHUB
-        if created:
-            try:
-                send_mail(
-                    "Bienvenue chez Agence de Voyage ✈️",
-                    "Bonjour !\n\nVotre compte a été créé avec succès via GitHub.\n\nL'équipe.",
-                    settings.EMAIL_HOST_USER,
-                    [email],
-                    fail_silently=True
-                )
-            except Exception:
-                pass
+        token = JwtService.generer_token(utilisateur)
         
-        token = JwtService.generer_token(user)
-        redirect_url = f"http://localhost:4200/login?token={token}&id={user.id}&role={user.role}&email={user.email}"
-        return redirect(redirect_url)
-    
+        # Choix dynamique de l'URL du frontend
+        frontend_url = "http://localhost:5173" if frontend == 'react' else "http://localhost:4200"
+        
+        target_url = f"{frontend_url}/login?token={token}&id={utilisateur.id}&role={utilisateur.role}&email={utilisateur.email}"
+        return redirect(target_url)
+        
 class BilletViewSet(viewsets.ModelViewSet):
     serializer_class = BilletSerializer
 

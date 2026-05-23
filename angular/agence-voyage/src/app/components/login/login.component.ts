@@ -106,10 +106,11 @@ export class LoginComponent {
     const backend = this.serveurService.getBackend();
 
     if (backend === 'django') {
-      window.location.href = `${baseUrl}/auth/${fournisseur}/login/`;
+      // Pour Django, le paramètre 'state' est géré directement dans views.py
+      window.location.href = `${baseUrl}/auth/${fournisseur}/login/?frontend=angular`;
     } else {
-      const springBaseUrl = baseUrl.replace('/api', '');
-      window.location.href = `${springBaseUrl}/oauth2/authorization/${fournisseur}`;
+      // 👉 MODIFICATION ICI : Angular utilise désormais aussi le contrôleur d'initialisation de Spring
+      window.location.href = `${baseUrl}/auth/init-social?fournisseur=${fournisseur}&frontend=angular`;
     }
   }
 }

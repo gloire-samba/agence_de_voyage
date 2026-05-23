@@ -1,0 +1,249 @@
+.recherche-container {
+  max-width: 1000px;
+  margin: -40px auto 40px auto; /* Remonte légèrement sur le header */
+  padding: 30px;
+  background-color: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+  text-align: center;
+  position: relative;
+  z-index: 10;
+}
+
+h2 {
+  color: #333;
+  margin-bottom: 25px;
+  font-size: 1.5rem;
+}
+
+.search-panel {
+  display: flex;
+  flex-direction: column; 
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  background: #f8fafc;
+  padding: 15px;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+}
+
+/* Formulaire Manuel */
+.manual-search-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 15px;
+  flex: 1;
+  flex-wrap: wrap; 
+}
+
+.input-group {
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+  flex: 1;
+}
+
+.input-group label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #64748b;
+  margin-bottom: 5px;
+  text-transform: uppercase;
+}
+
+.input-group input {
+  padding: 12px 15px;
+  font-size: 15px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  outline: none;
+  background: white;
+  transition: border-color 0.2s;
+}
+
+.input-group input:focus {
+  border-color: #007bff;
+}
+
+.btn-swap {
+  background: white;
+  border: 1px solid #cbd5e1;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  font-size: 18px;
+  color: #007bff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 3px; 
+  transition: all 0.2s;
+}
+
+.btn-swap:hover {
+  background: #f1f5f9;
+  transform: rotate(180deg);
+}
+
+.btn-search {
+  padding: 13px 25px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  height: 46px;
+}
+
+.btn-search:hover {
+  background-color: #0056b3;
+}
+
+/* Séparateur */
+.divider {
+  display: flex;
+  flex-direction: row; 
+  align-items: center;
+  width: 100%;
+  color: #94a3b8;
+  font-weight: bold;
+  font-size: 12px;
+}
+
+.divider::before, .divider::after {
+  content: '';
+  flex: 1; 
+  height: 1px; 
+  background: #cbd5e1;
+  margin: 0 15px;
+}
+
+/* Zone IA */
+.ia-search-zone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  max-width: 450px;
+  margin: 0 auto;
+}
+
+.ia-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #64748b;
+  margin: 0 0 5px 0;
+  text-transform: uppercase;
+}
+
+.btn-mic {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  border: none;
+  color: white;
+  font-size: 20px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 10px rgba(99, 102, 241, 0.3);
+  transition: all 0.2s;
+}
+
+.btn-mic:hover:not(:disabled) {
+  transform: scale(1.05);
+}
+
+.btn-mic.recording {
+  background: #ef4444;
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+  70% { box-shadow: 0 0 0 15px rgba(239, 68, 68, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+}
+
+.spinner {
+  animation: spin 2s linear infinite;
+  display: inline-block;
+}
+
+@keyframes spin { 100% { transform: rotate(360deg); } }
+
+/* Feedback */
+.feedback-zone {
+  margin-top: 20px;
+  font-size: 14px;
+}
+
+.success-msg { color: #059669; }
+.error-msg { color: #ef4444; font-weight: bold; }
+
+.ia-text-box {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+  margin-bottom: 10px;
+}
+
+.ia-text-box input {
+  flex: 1;
+  padding: 10px 15px;
+  border: 1px solid #cbd5e1;
+  border-radius: 20px;
+  font-size: 14px;
+  outline: none;
+}
+
+.ia-text-box input:focus {
+  border-color: #8b5cf6;
+}
+
+.btn-ia-text {
+  background: linear-gradient(135deg, #8b5cf6, #6366f1);
+  color: white;
+  border: none;
+  border-radius: 20px;
+  padding: 0 15px;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.btn-ia-text:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.btn-ia-text:disabled {
+  background: #cbd5e1;
+  cursor: not-allowed;
+}
+
+.ia-ou {
+  font-size: 12px;
+  color: #94a3b8;
+  margin: 0 0 10px 0;
+  text-transform: lowercase;
+}
+
+.no-results-zone {
+  text-align: center;
+  padding: 40px;
+  background-color: #f8fafc;
+  border-radius: 12px;
+  margin-top: 20px;
+  border: 1px dashed #cbd5e1;
+  color: #475569;
+}
+.no-results-zone h3 {
+  color: #334155;
+  margin-bottom: 10px;
+}
