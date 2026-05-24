@@ -8,18 +8,24 @@ toc::[]
 == 📖 Présentation du Projet
 Bienvenue dans le projet **Agence de Voyage IA**. Il s'agit d'une plateforme complète de réservation de vols intégrant des fonctionnalités avancées : recherche de voyages par intelligence artificielle (texte et voix), système de réservation avec paiement sécurisé (Stripe), génération de billets PDF, envoi d'e-mails, et un panel d'administration complet.
 
-L'innovation majeure de ce projet réside dans son architecture hybride. L'interface **Angular** peut basculer dynamiquement, sans rechargement, entre deux moteurs back-end différents :
-* Un serveur **Java (Spring Boot)**, robuste, utilisant une base H2.
-* Un serveur **Python (Django)**, agile, utilisant une base SQLite.
-* Un **Microservice IA (FastAPI)**, totalement déporté dans le cloud sur Hugging Face, qui décharge les serveurs principaux du lourd calcul lié à l'intelligence artificielle.
+L'innovation majeure de ce projet réside dans son architecture hybride et ultra-modulaire. L'utilisateur peut naviguer et interagir de manière transparente entre **deux interfaces Front-end** et **deux moteurs Back-end** :
+
+* 🖥️ **Multi-Frontend** : Vous pouvez basculer instantanément d'une interface en **Angular** à une interface en **React** (via un bouton dédié dans la barre de navigation), tout en conservant votre session active et vos données de navigation.
+
+* 🗄️ **Multi-Backend** : Chaque interface peut basculer dynamiquement, sans rechargement, entre :
+  - Un serveur **Java (Spring Boot)**, robuste, utilisant une base H2.
+  - Un serveur **Python (Django)**, agile, utilisant une base SQLite.
+
+* 🧠 **Microservice IA** : Un service (FastAPI), totalement déporté dans le cloud sur Hugging Face, qui décharge les serveurs principaux du lourd calcul lié à l'intelligence artificielle.
 
 == 🏗️ Architecture et Composants
-Le projet est divisé en quatre modules indépendants. Chaque module possède sa propre documentation détaillée :
+Le projet est divisé en cinq modules indépendants. Chaque module possède sa propre documentation détaillée :
 
-* 🎨 link:./angular/README.adoc[**angular (Angular)**] : L'interface utilisateur interactive (Port 4200).
+* 🎨 link:./angular/README.adoc[**angular (Angular)**] : L'interface utilisateur interactive originelle (Port 4200).
+* ⚛️ link:./react/README.adoc[**react (React)**] : L'interface utilisateur alternative ultra-réactive (Port 5173).
 * ☕ link:./spring/README.adoc[**spring (Java)**] : Le serveur principal en Spring Boot (Port 8080).
 * 🎸 link:./django/README.adoc[**django (Python)**] : Le serveur principal alternatif en Django (Port 8000).
-* 🧠 link:./IA/README.adoc[**IA (FastAPI)**] : Le microservice d'analyse sémantique et vocale (Hébergé sur Hugging Face).
+* 🧠 link:./IA/README.adoc[**IA (FastAPI / IA)**] : Le micro-service de l'intelligence artificielle.
 
 == 🛠️ Prérequis
 Pour exécuter ce projet, vous devez disposer de :
@@ -191,6 +197,7 @@ Stripe a récemment imposé l'affichage de sa fonctionnalité de paiement en 1 c
 
 3. Vous pourrez alors entrer les numéros de carte de test ci-dessus.
 
+
 == 🚀 Lancement Global de l'Application
 
 La manière la plus simple de lancer toute l'architecture d'un seul coup est d'utiliser **Docker Compose** si vous avez créé un fichier `docker-compose.yml` à la racine.
@@ -202,9 +209,8 @@ La manière la plus simple de lancer toute l'architecture d'un seul coup est d'u
 docker-compose up --build
 ----
 3. Patientez pendant l'installation et le peuplement des bases de données.
-4. L'application est prête !
-* Accédez au Front-end : `http://localhost:4200`
-* L'API Spring répond sur : `http://localhost:8080`
-* L'API Django répond sur : `http://localhost:8000`
-
-Si vous ne possédez pas de `docker-compose.yml` global, veuillez vous référer aux README de chaque sous-dossier (Angular, Spring, Django) pour les lancer de manière individuelle via Docker ou manuellement.
+4. L'écosystème complet est prêt !
+* 🅰️ **Accédez au Front-end Angular :** `http://localhost:4200`
+* ⚛️ **Accédez au Front-end React :** `http://localhost:5173`
+* ☕ **L'API Spring Boot tourne sur :** `http://localhost:8080/api`
+* 🎸 **L'API Django tourne sur :** `http://localhost:8000/api`

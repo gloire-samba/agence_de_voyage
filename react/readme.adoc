@@ -1,0 +1,84 @@
+= ⚛️ Interface Web (Front-end React)
+:toc: macro
+:toc-title: Sommaire
+:sectnums:
+
+toc::[]
+
+link:../README.md[⬅️ Retour à la racine du projet]
+
+== 📖 Objectif du module
+Ce dossier contient l'interface graphique alternative de l'Agence de Voyage, développée avec le framework **React** (avec Vite et TypeScript).
+Tout comme la version Angular, c'est la vitrine du projet. Elle offre une expérience utilisateur riche (UX) et s'adapte dynamiquement au profil connecté (Client ou Administrateur).
+
+**Fonctionnalités principales :**
+* 🔄 **Double Sélecteur Dynamique** : Basculement à chaud (sans redémarrage) entre les deux moteurs backends (Spring Boot / Django) ET basculement instantané vers l'interface **Angular** via des boutons dédiés dans la barre de navigation.
+
+* 🔍 **Recherche Avancée & IA** : Recherche classique, recherche en langage naturel (texte) et recherche **vocale** (grâce à l'API `MediaRecorder` du navigateur).
+
+* 💳 **Paiement Intégré** : Interface de paiement sécurisée via Stripe Elements.
+
+* 🛡️ **Panel Administrateur Complet** : Gestion des vols, transfert de billets, bannissement d'utilisateurs et modération des avis.
+
+* 🎫 **Espace Client** : Historique des réservations, génération de carte d'embarquement (PDF) et dépôt d'avis (écrit ou vocal).
+
+== 🏗️ Architecture et Fichiers Clés
+Le projet respecte les standards modernes de l'écosystème React (Hooks fonctionnels, composants modulaires, Vite) :
+
+* `src/main.tsx` & `src/App.tsx` : Point d'entrée de l'application et configuration du routage protégé avec `react-router-dom`.
+* `src/components/` : Contient l'ensemble des vues et composants de l'application (Login, Recherche, Dashboard Admin...).
+* `src/services/` : Logique métier et communication avec les API gérées via des objets de services asynchrones.
+* `src/interceptors/jwt.interceptor.ts` : Surcharge de l'API `fetch` native pour agir comme un intercepteur HTTP et injecter automatiquement le jeton de sécurité (JWT).
+* `vite.config.ts` : Configuration du bundler Vite, optimisée pour le rechargement à chaud (Hot-Reload) et l'affichage des erreurs TypeScript en direct sous Docker.
+
+== 🐳 Lancement de l'Application
+
+Il existe deux manières de lancer ce module Front-end.
+
+=== Méthode 1 : Via Docker (Recommandé)
+Cette méthode garantit un environnement isolé, avec rechargement à chaud configuré pour remonter les erreurs de compilation directement dans le terminal.
+
+. Ouvrez un terminal dans le sous-dossier React.
+. Construisez l'image Docker :
++
+[source,bash]
+----
+docker build -t voyage-react .
+----
+. Démarrez le conteneur en liant le port interne 5173 au port 5173 de votre machine :
++
+[source,bash]
+----
+docker run -p 5173:5173 -v "$(pwd):/app" -v /app/node_modules voyage-react
+----
+L'interface est accessible sur **http://localhost:5173**.
+
+=== Méthode 2 : Lancement manuel de développement
+Cette méthode est idéale si vous développez localement sans Docker.
+_Prérequis : Node.js (v24) installé._
+
+. Ouvrez un terminal dans ce dossier.
+. Installez toutes les dépendances `npm` :
++
+[source,bash]
+----
+npm install
+----
+. Lancez le serveur de développement Vite :
++
+[source,bash]
+----
+npm run dev
+----
+L'interface est accessible sur **http://localhost:5173**.
+
+== ⚠️ Avertissement de fonctionnement
+Bien que l'interface graphique puisse s'afficher seule, **elle est totalement inutile sans un serveur back-end pour lui fournir les données**.
+
+* Assurez-vous d'avoir lancé au moins le backend **Spring Boot (8080)** ou **Django (8000)** en parallèle.
+
+* L'IA fonctionne sans backend local puisqu'elle appelle directement le microservice distant déployé sur Hugging Face.
+
+== 🛑 Comment arrêter le serveur ?
+* **Si lancé via Docker :** Faites `Ctrl + C` dans le terminal.
+* **Si lancé via npm :** Faites `Ctrl + C` dans le terminal.
