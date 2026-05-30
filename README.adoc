@@ -152,8 +152,10 @@ Pour des raisons de sécurité, Google n'autorise plus la connexion avec votre m
 2. Créez un nouveau projet.
 3. Accédez à **API et services > Identifiants**.
 4. Cliquez sur **Créer des identifiants > ID de client OAuth**.
-5. Configurez l'écran de consentement en mode "Externe".
-6. **Origines JavaScript autorisées :** `http://localhost:4200`, *cliquez sur le bouton "+"* et ajouter l'url `http://localhost:5173`
+5. Configurez l'écran de consentement en mode **"Externe"**.
+6. **Origines JavaScript autorisées :**
+   * Pour angular : `http://localhost:4200`
+   * Pour React : `http://localhost:5173`
 7. **URI de redirection autorisés :**
    * Pour Spring : `http://localhost:8080/login/oauth2/code/google`
    * Pour Django : `http://localhost:8000/accounts/google/login/callback/`
