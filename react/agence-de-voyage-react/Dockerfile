@@ -1,20 +1,30 @@
-# On part d'une image Node.js légère
-FROM node:24-alpine
+# --- ÉTAPE 1 : Build de l'application ---
+FROM node:22-alpine AS build
 
-# On définit le dossier de travail dans le conteneur
 WORKDIR /app
 
-# On copie d'abord les fichiers de dépendances pour optimiser le cache Docker
+# Copie des fichiers de dépendances
 COPY package*.json ./
 
-# On installe les dépendances
+# Installation des dépendances (on conserve ton flag de sécurité)
 RUN npm install --legacy-peer-deps
 
-# On copie le reste du code
+# Copie du reste du code source
 COPY . .
 
-# On expose le port de Vite
-EXPOSE 5173
+# Compilation de production (génère le dossier /app/dist)
+RUN npm run build
 
-# On lance Vite avec l'argument --host (obligatoire dans Docker pour exposer le port vers ton PC)
-CMD ["npm", "run", "dev", "--", "--host", "--force"]
+# --- ÉTAPE 2 : Serveur de production ---
+FROM nginx:alpine
+
+# Copie des fichiers statiques compilés depuis l'étape précédente vers le dossier Nginx
+COPY --from=build /app/dist /usr/share/nginx/html
+
+# Copie de notre configuration Nginx personnalisée
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+
+# Exposition du port standard de Nginx
+EXPOSE 80
+
+CMD ["nginx", "-g", "daemon off;"]

@@ -26,14 +26,9 @@ services:
       - "4200:80"
     init: true
 
+  # 👉 MISE À JOUR : Service React en mode Production pur
   react:
-      build: ./react/agence-de-voyage-react
-      ports:
-        - "5173:5173"
-      volumes:
-        - ./react/agence-de-voyage-react:/app
-        - /app/node_modules # Évite d'écraser les modules Linux du conteneur par ceux de ton PC Windows/Mac
-      environment:
-        # Force Vite à surveiller activement les fichiers (vital pour le hot-reload dans Docker)
-        - CHOKIDAR_USEPOLLING=true 
-      init: true
+    build: ./react/agence-de-voyage-react
+    ports:
+      - "5173:80" # Mappe le port 5173 de ton PC sur le port 80 de Nginx
+    init: true

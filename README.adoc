@@ -153,7 +153,7 @@ Pour des raisons de sécurité, Google n'autorise plus la connexion avec votre m
 3. Accédez à **API et services > Identifiants**.
 4. Cliquez sur **Créer des identifiants > ID de client OAuth**.
 5. Configurez l'écran de consentement en mode "Externe".
-6. **Origines JavaScript autorisées :** `http://localhost:4200`
+6. **Origines JavaScript autorisées :** `http://localhost:4200`, *cliquez sur le bouton "+"* et ajouter l'url `http://localhost:5173`
 7. **URI de redirection autorisés :**
    * Pour Spring : `http://localhost:8080/login/oauth2/code/google`
    * Pour Django : `http://localhost:8000/accounts/google/login/callback/`
@@ -162,7 +162,7 @@ Pour des raisons de sécurité, Google n'autorise plus la connexion avec votre m
 ==== 🐙 GitHub Developer Settings
 1. Allez dans vos **Settings** GitHub > **Developer Settings** > **OAuth Apps**.
 2. Cliquez sur **New OAuth App**.
-3. **Homepage URL :** `http://localhost:4200`
+3. **Homepage URL :** `http://localhost:4200` ( ici l'url que vous allez mettre sur  n'aura aucune importance, *mais assurez vous d'avoir aumoins mis soit l'url de 'angular ou soit celui de react* )
 4. **Authorization callback URL :**
    * Pour Spring : `http://localhost:8080/login/oauth2/code/github`
    * Pour Django : `http://localhost:8000/accounts/github/login/callback/`
