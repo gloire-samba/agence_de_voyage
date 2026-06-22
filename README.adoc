@@ -58,6 +58,9 @@ STRIPE_SECRET_KEY=sk_test_votre_cle_secrete_stripe_ici
 EMAIL_HOST_USER=votre_email@gmail.com
 # Rappel : le mot de passe d'application de 16 lettres, TOUT ATTACHÉ sans les espaces !
 EMAIL_HOST_PASSWORD=votremotdepasseapplication
+
+# Cle secrete généré par django
+SECRET_KEY ="django-insecure-0$c%5dvu9ssccb5kd7op%^ttwxaei=y2w&ni0bspa$=d5rrp)c"
 ----
 
 === 2. Fichier `application-secret.properties` (Pour Spring Boot)
