@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ServeurService } from '../../services/serveur.service';
 import { ReservationService } from '../../services/reservation.service';
@@ -21,9 +21,11 @@ export const PaiementComponent = () => {
   const [stripeObj, setStripeObj] = useState<Stripe | null>(null);
   const [elementsObj, setElementsObj] = useState<StripeElements | null>(null);
 
+  // 👉 CORRECTION 2 : On utilise un useRef pour stocker l'élément de paiement Stripe
+  const paymentElementRef = useRef<any>(null);
+
   useEffect(() => {
     const initStripe = async () => {
-      // 👉 On attend la promesse globale
       const stripeInstance = await stripePromise;
       setStripeObj(stripeInstance);
 
@@ -48,11 +50,12 @@ export const PaiementComponent = () => {
             setElementsObj(elems);
             
             const paymentElement = elems.create('payment', { layout: 'tabs' });
-            setTicketRecu(true);
             
-            setTimeout(() => {
-              paymentElement.mount('#payment-element-div');
-            }, 0);
+            // 👉 CORRECTION 3 : On stocke l'élément dans la référence au lieu de faire un setTimeout
+            paymentElementRef.current = paymentElement;
+            
+            // On déclenche le rendu de la div du paiement
+            setTicketRecu(true);
           } else {
             setMessage("Erreur : Ticket secret non reçu.");
           }
@@ -66,6 +69,14 @@ export const PaiementComponent = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [prix]);
 
+  // 👉 CORRECTION 4 : Ce useEffect garantit que .mount() est appelé STRICTEMENT 
+  // après que React a inséré <div id="payment-element-div"> dans le DOM réel.
+  useEffect(() => {
+    if (ticketRecu && paymentElementRef.current) {
+      paymentElementRef.current.mount('#payment-element-div');
+    }
+  }, [ticketRecu]);
+
   const payer = async () => {
     if (isLoading || !stripeObj || !elementsObj) return;
     
@@ -73,7 +84,6 @@ export const PaiementComponent = () => {
     setMessage("Traitement du paiement en cours...");
 
     try {
-      // 👉 CORRECTION 2 : On sécurise le paiement avec un try/catch
       const { error, paymentIntent } = await stripeObj.confirmPayment({
         elements: elementsObj,
         redirect: 'if_required' 
