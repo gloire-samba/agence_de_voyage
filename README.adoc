@@ -7,7 +7,7 @@ toc::[]
 
 == 📖 Présentation du Projet
 
-🎥 **Voir la démonstration vidéo (2 min) :** link:https://youtu.be/Bty23AQXZ7c[Cliquez ici pour voir l'architecture en action sur YouTube]
+🎥 **Voir la démonstration vidéo (2 min) :** link:https://youtu.be/IDkdIAmREJ8[Cliquez ici pour voir l'architecture en action sur YouTube]
 
 Bienvenue dans le projet **Agence de Voyage IA**. Il s'agit d'une plateforme complète de réservation de vols intégrant des fonctionnalités avancées : recherche de voyages par intelligence artificielle (texte et voix), système de réservation avec paiement sécurisé (Stripe), génération de billets PDF, envoi d'e-mails, et un panel d'administration complet.
 
