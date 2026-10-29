@@ -5,7 +5,7 @@
 
 toc::[]
 
-link:../README.md[⬅️ Retour à la racine du projet]
+link:../README.adoc[⬅️ Retour à la racine du projet]
 
 == 📖 Objectif du module
 Ce dossier contient l'interface graphique alternative de l'Agence de Voyage, développée avec le framework **React** (avec Vite et TypeScript).
